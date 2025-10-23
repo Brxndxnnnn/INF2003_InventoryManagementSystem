@@ -1,0 +1,4 @@
+# INF2003_InventoryManagementSystem
+INF2003_P4_Team66 Project
+
+cd backend --> npm run dev
