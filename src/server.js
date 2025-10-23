@@ -1,0 +1,30 @@
+import express from "express";
+import cors from "cors";
+import userRoute from './routes/userRoute.js';
+import authRoute from './routes/authRoute.js';
+import shopRoute from './routes/shopRoute.js';
+import supplierRoute from './routes/supplierRoute.js';
+
+const app = express()
+
+// Enable CORS (frontend-backend communication since they both have different ports)
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
+
+// Allow JSON request bodies
+app.use(express.json());
+
+// Routes
+app.use("/api/user", userRoute)
+app.use("/api/auth", authRoute)
+app.use("/api/shop", shopRoute)
+app.use("/api/supplier", supplierRoute)
+
+app.listen(process.env.CLIENT_PORT, () =>
+  console.log(`Server running on http://localhost:${process.env.CLIENT_PORT}`)
+);
