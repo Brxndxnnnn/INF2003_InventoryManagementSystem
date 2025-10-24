@@ -23,11 +23,11 @@ const pool = mysql.createPool({
 
   // Pool error handling
   pool.on("error", (err) => {
-    console.error("⚠️ MySQL pool error:", err.code);
+    console.error("MySQL pool error:", err.code);
 
     // Attempt to rebuild the pool on network errors
     if (["PROTOCOL_CONNECTION_LOST", "ECONNRESET", "ETIMEDOUT"].includes(err.code)) {
-      console.log("🔄 Reinitializing MySQL connection pool...");
+      console.log("Reinitializing MySQL connection pool...");
       createPool();
     } else {
       console.error("Unhandled MySQL error:", err);

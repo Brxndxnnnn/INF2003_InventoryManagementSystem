@@ -55,8 +55,7 @@ const AddSupplierProductModal = ({ onClose, onSuccess }) => {
         <h3>1. Choose product to add</h3>
         <form onSubmit={handleSubmit} style={{ border: "none", boxShadow: "none" }}>
           <select
-            id="category-select"
-            name="category_id"                // ✅ must match the key in formData
+            name="category_id"
             value={formData.category_id || ""}
             onChange={handleChange}>
               

@@ -59,30 +59,7 @@ export const getSupplierProductBySupplier = async (req, res) => {
 export const createSupplierProduct = async (req, res) => {
   const { product_id, supplier_id, sku, unit_price, min_order_quantity, stock_quantity, is_available } = req.body;
 
-  // Backend validation (Empty fields)
-  if (!product_id || !supplier_id || !sku || !unit_price) {
-    return res.status(400).json({ message: "Missing required fields." });
-  }
-
   try {
-    // Check if product exists (foreign key validation)
-    const [product] = await pool.query("SELECT * FROM product WHERE product_id = ?", [product_id]);
-    if (product.length === 0) {
-      return res.status(404).json({ message: "Product not found." });
-    }
-
-    // Check if supplier exists
-    const [supplier] = await pool.query("SELECT * FROM supplier WHERE supplier_id = ?", [supplier_id]);
-    if (supplier.length === 0) {
-      return res.status(404).json({ message: "Supplier not found." });
-    }
-
-    // Check if SKU already exists
-    const [existing] = await pool.query("SELECT * FROM supplier_product WHERE sku = ?", [sku]);
-    if (existing.length > 0) {
-      return res.status(409).json({ message: "SKU already exists." });
-    }
-
     // Insert into db
     await pool.query(
       `INSERT INTO supplier_product (
@@ -93,8 +70,8 @@ export const createSupplierProduct = async (req, res) => {
         supplier_id, 
         sku, 
         unit_price, 
-        min_order_quantity || null, 
-        stock_quantity || 0, 
+        min_order_quantity, 
+        stock_quantity, 
         is_available ?? 1
       ]
     );
@@ -102,8 +79,7 @@ export const createSupplierProduct = async (req, res) => {
     res.status(201).json({ message: "Supplier product created successfully." });
   } 
   catch (err) {
-    console.error("Error creating supplier product:", err);
-    res.status(500).json({ message: err.message });
+    res.status(400).json({ message: err.sqlMessage });
   }
 };
 
@@ -111,12 +87,6 @@ export const createSupplierProduct = async (req, res) => {
 export const updateSupplierProduct = async (req, res) => {
   const { id } = req.params;
   const { product_id, supplier_id, sku, unit_price, min_order_quantity, stock_quantity, is_available } = req.body;
-
-  // Backend validation
-  if (!product_id && !supplier_id && !sku && !unit_price && !min_order_quantity && !stock_quantity && is_available === undefined) {
-    return res.status(400).json({ message: "No fields provided for update." });
-  }
-
   try {
     // Check if supplier product exists
     const [record] = await pool.query("SELECT * FROM supplier_product WHERE supplier_product_id = ?", [id]);
@@ -144,7 +114,8 @@ export const updateSupplierProduct = async (req, res) => {
   } 
   catch (err) {
     console.error(`Error updating supplier product with ID ${id}:`, err);
-    res.status(500).json({ message: err.message });
+
+    res.status(500).json({ message: err.sqlMessage });
   }
 };
 
