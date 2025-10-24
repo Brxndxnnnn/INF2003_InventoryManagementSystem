@@ -25,6 +25,19 @@ export const getProductById = async (req, res) => {
   }
 };
 
+// Get product by Category
+export const getProductsByCategory = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await pool.query("SELECT * FROM product WHERE category_id = ?", [id]);
+    res.status(200).json(rows);
+  } 
+  catch (err) {
+    console.error(`Error fetching product with ID ${id}:`, err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Create new product
 export const createProduct = async (req, res) => {
   const { category_id, product_name, description, unit_of_measure } = req.body;
