@@ -4,6 +4,9 @@ import userRoute from './routes/userRoute.js';
 import authRoute from './routes/authRoute.js';
 import shopRoute from './routes/shopRoute.js';
 import supplierRoute from './routes/supplierRoute.js';
+import categoryRoute from './routes/categoryRoute.js';
+import productRoute from './routes/productRoute.js';
+import supplierProductRoute from './routes/supplierProductRoute.js';
 
 const app = express()
 
@@ -24,6 +27,9 @@ app.use("/api/user", userRoute)
 app.use("/api/auth", authRoute)
 app.use("/api/shop", shopRoute)
 app.use("/api/supplier", supplierRoute)
+app.use("/api/category", categoryRoute)
+app.use("/api/product", productRoute)
+app.use("/api/supplier-product", supplierProductRoute)
 
 app.listen(process.env.CLIENT_PORT, () =>
   console.log(`Server running on http://localhost:${process.env.CLIENT_PORT}`)

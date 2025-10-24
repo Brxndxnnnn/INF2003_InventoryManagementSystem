@@ -14,7 +14,7 @@ router.get("/", getAllSuppliers) //"SELECT * FROM shop"
 router.get("/user/:id", getSuppliersByUserId) //"SELECT * FROM shop WHERE user_id = ?"
 router.get("/:id", getSupplierById) //"SELECT * FROM shop WHERE shop_id = ?"
 router.post("/", createSupplier) // "INSERT INTO shop ..."
-router.put("/:id", updateSupplier) // "UPDATE shop SET ..."
+router.patch("/:id", updateSupplier) // "UPDATE shop SET ..."
 router.delete("/:id", deleteSupplier) // "DELETE FROM shop WHERE shop_id = ?"
 
 export default router;
