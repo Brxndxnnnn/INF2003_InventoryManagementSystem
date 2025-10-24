@@ -1,0 +1,335 @@
+/* TEMPLATE CSS MASTer FILE(chatgpt generated one) change if u want to */
+
+/* ========== Global Reset ========== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* ========== Theme Variables (USOIMP Color Scheme) ========== */
+:root {
+  --color-primary: #0077b6;       /* Calm industrial blue */
+  --color-primary-dark: #023e8a;  /* Deep navy */
+  --color-accent: #f4a261;        /* Warm orange accent */
+  --color-bg: #f8fafc;            /* Light gray background */
+  --color-surface: #ffffff;       /* Card / form background */
+  --color-border: #e2e8f0;        /* Subtle borders */
+  --color-text: #1e293b;          /* Main text (slate-800) */
+  --color-muted: #64748b;         /* Secondary text (slate-500) */
+
+  --border-radius: 8px;
+  --transition: 0.2s ease;
+  --spacing: 1rem;
+}
+
+/* ========== Typography ========== */
+h1, h2, h3, h4, h5 {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+p {
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+a:hover {
+  color: var(--color-primary-dark);
+}
+
+.shop-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary-color, #004d99);
+  margin-bottom: 0.8rem;
+}
+
+/* ========== Layout Helpers ========== */
+.center-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: var(--color-bg);
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing);
+}
+
+.container2 {
+  padding: var(--spacing);
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  padding: 1.5rem 0;
+  width: 100%;
+}
+
+/* ========== Cards & Forms ========== */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--color-surface);
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  width: 100%;  
+  max-width: 100%;        
+  box-sizing: border-box; 
+}
+
+form h2 {
+  color: var(--color-primary-dark);
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.shop-card {
+  background-color: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 1.2rem 1.5rem;
+  transition: all 0.25s ease-in-out;
+}
+
+.shop-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;  /* Align buttons to the right */
+  gap: 0.5rem;                /* Add space between buttons */
+  margin-top: 1rem;
+}
+
+.card-actions button {
+  width: auto;                /* Make buttons fit content */
+  min-width: 80px;            /* Optional: ensure uniform button width */
+  padding: 0.6rem 1.2rem;     /* Consistent button padding */
+}
+
+
+
+/* ========== Inputs & Selects ========== */
+input, select {
+  padding: 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0,119,182,0.1);
+}
+
+
+
+/* ========== Buttons ========== */
+button {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 0.7rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--transition), transform var(--transition);
+}
+
+button:hover {
+  background-color: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  background-color: #ccc;            
+  color: #666;                   
+  cursor: not-allowed;              
+  transform: none;                   
+  opacity: 0.8;                    
+}
+
+button:disabled:hover {
+  background-color: #ccc;         
+  transform: none;                 
+}
+
+/* ========== Utility Classes ========== */
+.text-center {
+  text-align: center;
+}
+
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+
+
+/* ========== Auth Page Layout ========== */
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--color-surface);
+  padding: 2rem 2.5rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  width: 340px;
+}
+
+.auth-card form {
+  width: 100%;
+  border: none; /* remove inner border */
+  box-shadow: none; /* remove nested shadow */
+  padding: 0; /* align with outer card */
+}
+
+/* Text-only toggle link */
+.link-text {
+  color: var(--color-primary);
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+.link-text:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+/* ===== NAVBAR STYLES ===== */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.navbar-left {
+  flex: 1;
+  text-align: left;
+}
+
+.navbar-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.navbar-center {
+  flex: 2;
+  text-align: center;
+}
+
+.navbar-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  width: 800px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.modal input {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.add-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.add-btn:hover {
+  background-color: #0056b3;
+}
+
+hr{
+  margin-top:10px;
+  margin-bottom:10px;
+}
+
+.product-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.product-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 1rem;
+  cursor: pointer;
+  background-color: #fff;
+  transition: all 0.2s ease;
+}
+
+.product-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.product-card.selected {
+  border: 2px solid #007bff;
+  background-color: #f0f8ff;
+}
