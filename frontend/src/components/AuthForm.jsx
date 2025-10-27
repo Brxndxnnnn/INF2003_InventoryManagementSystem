@@ -7,7 +7,12 @@ const AuthForm = ({ mode, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit({ email, password, userType });
+    const formattedPayload = { // temp fix for being able to register w/o password --> NN only checks for NULL, but forms have "" (empty string), so it still passes thru
+    email: email.trim() === "" ? null : email.trim(),
+    password: password.trim() === "" ? null : password.trim(),
+    userType,
+    };
+    onSubmit(formattedPayload);
   };
 
   return (
@@ -15,11 +20,10 @@ const AuthForm = ({ mode, onSubmit }) => {
       <h2>{mode === "login" ? "Login" : "Register"}</h2>
 
       <input
-        type="email"
+        type="text"
         placeholder="Email address"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        required
       />
 
       <input
@@ -27,7 +31,6 @@ const AuthForm = ({ mode, onSubmit }) => {
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        required
       />
 
       {mode === "register" && 

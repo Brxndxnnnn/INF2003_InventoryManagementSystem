@@ -41,11 +41,6 @@ export const getSupplierById = async (req, res) => {
 export const createSupplier = async (req, res) => {
     const { user_id, supplier_name, supplier_address, supplier_contact_number, supplier_email, supplier_uen } = req.body;
 
-    // Backend validation (Empty fields)
-    if(!user_id || !supplier_name || !supplier_email || !supplier_uen){
-        return res.status(400).json({ message: "Missing required fields" });
-    }
-
     try {
         // Check if user exists (foreign key validation)
         const [user] = await pool.query("SELECT * FROM user WHERE user_id = ?", [user_id]);
@@ -125,6 +120,33 @@ export const deleteSupplier = async (req, res) => {
     } 
     catch (err) {
         console.error(`Error deleting supplier with ID ${id}:`, err);
+        res.status(500).json({ message: err.message });
+    }
+};
+
+
+// Search suppliers using FULLTEXT index
+export const searchSupplier = async (req, res) => {
+    const { q } = req.query; // get search query from ?q=
+    try {
+        if (!q || q.trim() === "") {
+            // if empty query, return all suppliers
+            const [rows] = await pool.query("SELECT * FROM supplier ORDER BY supplier_name ASC");
+            return res.status(200).json(rows);
+        }
+
+        // Use FULLTEXT BOOLEAN MODE for partial search (prefix match)
+        const [rows] = await pool.query(
+            `SELECT * FROM supplier 
+            WHERE MATCH(supplier_name, supplier_email, supplier_uen, supplier_contact_number)
+            AGAINST (? IN BOOLEAN MODE)`,
+            [`${q}*`]
+        );
+
+        res.status(200).json(rows);
+    } 
+    catch (err) {
+        console.error("Error searching suppliers:", err);
         res.status(500).json({ message: err.message });
     }
 };

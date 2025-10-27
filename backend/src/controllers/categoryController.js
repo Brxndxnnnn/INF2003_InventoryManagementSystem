@@ -29,11 +29,6 @@ export const getCategoryById = async (req, res) => {
 export const createCategory = async (req, res) => {
   const { category_name, description } = req.body;
 
-  // Backend validation (Empty fields)
-  if (!category_name) {
-    return res.status(400).json({ message: "Category name is required." });
-  }
-
   try {
     // Check if category already exists (UNIQUE constraint)
     const [existing] = await pool.query(

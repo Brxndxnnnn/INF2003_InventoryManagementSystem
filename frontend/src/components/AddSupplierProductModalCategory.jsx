@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import api from "../api";
+import api from "../api.js";
 
 const AddSupplierProductModal = ({ onClose, onSuccess }) => {
   const [categories, setCategories] = useState([]);
