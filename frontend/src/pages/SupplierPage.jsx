@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import Navbar from "../components/Navbar";
-import api from "../api";
+import api from "../api.js";
 import AddSupplierProductModalCategory from "../components/AddSupplierProductModalCategory.jsx";
 import AddSupplierProductModalForm from "../components/AddSupplierProductModalForm.jsx";
 import EditSupplierProductModal from "../components/EditSupplierProductModal.jsx";
@@ -75,7 +75,7 @@ const SupplierPage = () => {
             </div>
             <div className="shop-grid">
             {products.length > 0 ? (
-                products.map((product) => <ProductCard key={product.product_id} product={product} onEdit={() => handleEditProduct(product)} onDelete={() => handleDeleteProduct(product)} />)
+                products.map((product) => <ProductCard key={product.supplier_product_id} product={product} onEdit={() => handleEditProduct(product)} onDelete={() => handleDeleteProduct(product)} />)
             ) : (
                 <p>No products found.</p>
             )}

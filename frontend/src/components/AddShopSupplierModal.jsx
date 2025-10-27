@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import api from "../api";
+import api from "../api.js";
 
 const AddShopSupplierModal = ({ userId, role, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -68,7 +68,6 @@ const AddShopSupplierModal = ({ userId, role, onClose, onSuccess }) => {
             name="name"
             placeholder={`${role === "supplier" ? "Supplier" : "Shop"} Name`}
             onChange={handleChange}
-            required
           />
           <input
             type="text"
@@ -93,7 +92,6 @@ const AddShopSupplierModal = ({ userId, role, onClose, onSuccess }) => {
             name="uen"
             placeholder="UEN (e.g. 12345678X)"
             onChange={handleChange}
-            required
           />
 
           <div className="modal-actions">

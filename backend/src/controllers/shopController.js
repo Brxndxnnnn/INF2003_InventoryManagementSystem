@@ -38,11 +38,6 @@ export const getShopById = async (req, res) => {
 export const createShop = async (req, res) => {
     const { user_id, shop_name, shop_address, shop_contact_number, shop_email, shop_uen } = req.body;
 
-    // Backend validation (Empty fields)
-    if(!user_id || !shop_name || !shop_email || !shop_uen){
-        return res.status(400).json({ message: "Missing required fields" });
-    }
-
     try {
     // Check if user exists (foreign key validation)
     const [user] = await pool.query("SELECT * FROM user WHERE user_id = ?", [user_id]);

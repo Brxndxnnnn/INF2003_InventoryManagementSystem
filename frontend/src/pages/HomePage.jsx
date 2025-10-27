@@ -26,10 +26,9 @@ const HomePage = () => {
             }
             const { data } = await api.get(endpoint);
             setItems(data);
-            console.log(`Fetched ${role === "shop" ? "items" : "suppliers"} successfully:`, data);
         } 
         catch (err) {
-            console.error("Error fetching data:", err.response?.data?.message || err.message);
+            console.error(err);
         }
     };
 
@@ -54,7 +53,7 @@ const HomePage = () => {
 
         <div className="shop-grid">
           {items.length > 0 ? (
-            items.map((shop) => <ShopCard key={shop.shop_id} shop={shop} role={role} />)
+            items.map((shop) => <ShopCard key={shop.shop_id || shop.supplier_id} shop={shop} role={role} />)
           ) : (
             <p>No {role === "supplier" ? "suppliers" : "shops"} found.</p>
           )}

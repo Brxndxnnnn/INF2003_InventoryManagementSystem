@@ -42,11 +42,6 @@ export const getProductsByCategory = async (req, res) => {
 export const createProduct = async (req, res) => {
   const { category_id, product_name, description, unit_of_measure } = req.body;
 
-  // Backend validation (Empty fields)
-  if (!category_id || !product_name || !unit_of_measure) {
-    return res.status(400).json({ message: "Missing required fields." });
-  }
-
   try {
     // Check if category exists (foreign key validation)
     const [category] = await pool.query("SELECT * FROM category WHERE category_id = ?", [category_id]);

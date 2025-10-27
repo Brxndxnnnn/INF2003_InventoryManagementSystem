@@ -19,7 +19,6 @@ const AuthPage = () => {
           ? { email, password }
           : { email, password, user_type: userType };
 
-      // Use axios instance from api.js
       const { data } = await api.post(endpoint, payload);
 
       // Login success
@@ -39,7 +38,7 @@ const AuthPage = () => {
         setMode("login");
       }
     } catch (err) {
-      alert(err);
+      alert(err.response.data.message);
     }
   };
 
