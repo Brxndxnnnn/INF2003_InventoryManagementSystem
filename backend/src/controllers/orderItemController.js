@@ -12,11 +12,32 @@ export const getAllOrderItems = async (req, res) => {
     }
 };
 
+// Get all order items by supplier name with product name(nested LEFT JOIN since product name needs 2 FKs to access order_item -> supplier_product -> product)
+export const getOrderItemsBySupplier = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [rows] = await pool.query(`
+            SELECT o.*, p.product_name FROM order_item o 
+            LEFT JOIN supplier_product sp ON o.supplier_product_id = sp.supplier_product_id 
+            LEFT JOIN product p ON sp.product_id = p.product_id
+            WHERE sp.supplier_id = ?`, [id]);
+        res.status(200).json(rows);
+    } 
+    catch (err) {
+        console.error("Error fetching order items:", err);
+        res.status(500).json({ message: err.message });
+    }
+};
+
 // Get order items by order ID
 export const getOrderItemsByOrderId = async (req, res) => {
     const { id } = req.params;
     try {
-        const [rows] = await pool.query("SELECT * FROM order_item WHERE order_id = ?", [id]);
+        const [rows] = await pool.query(`
+            SELECT o.*, p.product_name FROM order_item o 
+            LEFT JOIN supplier_product sp ON o.supplier_product_id = sp.supplier_product_id 
+            LEFT JOIN product p ON sp.product_id = p.product_id
+            WHERE order_id = ?`, [id]);
         res.status(200).json(rows);
     } 
     catch (err) {
@@ -47,6 +68,31 @@ export const createOrderItem = async (req, res) => {
     } 
     catch (err) {
         console.error("Error creating order item:", err);
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// Edit order item (only PATCH status)
+export const updateOrderItem = async (req, res) => {
+    const { id } = req.params;
+    const { item_status } = req.body;
+
+    try {
+        const [result] = await pool.query(
+            `UPDATE order_item 
+             SET item_status = ?, updated_at = NOW() 
+             WHERE order_item_id = ?`,
+            [item_status, id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Order item not found." });
+        }
+
+        res.status(200).json({ message: "Order item status updated successfully." });
+    } 
+    catch (err) {
+        console.error(`Error updating order item ${id}:`, err);
         res.status(500).json({ message: err.message });
     }
 };

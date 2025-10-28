@@ -333,3 +333,12 @@ hr{
   border: 2px solid #007bff;
   background-color: #f0f8ff;
 }
+
+.orders-section {
+  margin-top: 10px;
+}
+
+.orders-section .order-header:hover {
+  background-color: #eee;
+  transition: background-color 0.2s ease;
+}

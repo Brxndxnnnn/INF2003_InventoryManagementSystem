@@ -2,20 +2,18 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import Navbar from "../components/Navbar";
 import api from "../api.js";
-import AddSupplierProductModalCategory from "../components/AddSupplierProductModalCategory.jsx";
-import AddSupplierProductModalForm from "../components/AddSupplierProductModalForm.jsx";
 import EditSupplierProductModal from "../components/EditSupplierProductModal.jsx";
 import ProductCard from "../components/ProductCard.jsx";
+import SupplierOrderCard from "../components/SupplierOrderCard.jsx";
+import AddSupplierProductModal from "../components/AddSupplierProductModal.jsx";
 
 const SupplierPage = () => {
     const { id } = useParams();
-    const user = JSON.parse(sessionStorage.getItem("user"));
     const [supplier, setSupplier] = useState([]);
     const [products, setProducts] = useState([]);
-    const [showCategoryModal, setShowCategoryModal] = useState(false);
-    const [showFormModal, setShowFormModal] = useState(false);
+    const [orders, setOrders] = useState([]);
+    const [showAddProductModal, setShowAddProductModal] = useState(false);
     const [showEditFormModal, setShowEditFormModal] = useState(false);
-    const [selectedProduct, setSelectedProduct] = useState(null);
     const [editingProduct, setEditingProduct] = useState(null);
 
     const fetchSupplier = async () => {
@@ -28,18 +26,12 @@ const SupplierPage = () => {
         setProducts(data);
     };
 
-    useEffect(() => {if (id) fetchSupplier(); fetchProducts();}, [id]);
+    const fetchOrders = async () => {
+        const { data } = await api.get(`/api/order-item/supplier/${id}`);
+        setOrders(data)
+    }
 
-    const handleProductChosen = (product) => {
-        setSelectedProduct(product);
-        setShowCategoryModal(false);
-        setShowFormModal(true);
-    };
-
-    const handleProductAdded = (data) => {
-        setShowFormModal(false);
-        fetchProducts();
-    };
+    useEffect(() => {if (id) fetchSupplier(); fetchProducts(); fetchOrders();}, [id]);
 
     const handleEditProduct = (product) => {
         setEditingProduct(product);
@@ -49,6 +41,22 @@ const SupplierPage = () => {
     const handleEditSuccess = () => {
         setShowEditFormModal(false);
         fetchProducts();
+    };
+
+    const handleOrderStatus = async (order, status) => {
+    try {
+        const endpoint = `/api/order-item/${order.order_item_id}`;
+        const payload = { item_status: status };
+
+        const { data } = await api.patch(endpoint, payload);
+
+        alert(data.message);
+        fetchOrders();
+        fetchProducts();
+
+    } catch (err) {
+        alert(err.response?.data?.message);
+    }
     };
 
     const handleDeleteProduct = async (product) => {
@@ -69,7 +77,7 @@ const SupplierPage = () => {
             <hr></hr>
             <div className="header-row" style={{ display: "flex", justifyContent: "space-between", alignProducts: "center" }}>
                 <h2>Products</h2>
-                <button  onClick={() => setShowCategoryModal(true)} className="add-btn">
+                <button  onClick={() => setShowAddProductModal(true)} className="add-btn">
                     + Add Product
                 </button>
             </div>
@@ -80,9 +88,19 @@ const SupplierPage = () => {
                 <p>No products found.</p>
             )}
             </div>
+            <hr></hr>
+            <div className="header-row" style={{ display: "flex", justifyContent: "space-between", alignProducts: "center" }}>
+                <h2>Orders</h2>
+            </div>
+            <div className="shop-grid">
+            {orders.length > 0 ? (
+                orders.map((order) => <SupplierOrderCard key={order.order_id} order={order} onAccept={() => handleOrderStatus(order, "approved")} onReject={() => handleOrderStatus(order, "rejected")}/>)
+            ) : (
+                <p>No orders found.</p>
+            )}
+            </div>
         </div>
-        {showCategoryModal && (<AddSupplierProductModalCategory onClose={() => setShowCategoryModal(false)} onSuccess={handleProductChosen}/>)}
-        {showFormModal && selectedProduct && (<AddSupplierProductModalForm supplierId={id} product={selectedProduct} onClose={() => setShowFormModal(false)} onSuccess={handleProductAdded}/>)}
+        {showAddProductModal && (<AddSupplierProductModal supplierId={id} onClose={() => setShowAddProductModal(false)} onSuccess = {fetchProducts}/>)}
         {showEditFormModal && editingProduct && (<EditSupplierProductModal product={editingProduct} onClose={() => setShowEditFormModal(false)} onSuccess={handleEditSuccess}/>)}
     </div>
   )

@@ -125,28 +125,49 @@ export const deleteSupplier = async (req, res) => {
 };
 
 
-// Search suppliers using FULLTEXT index
+// Search suppliers with optional fulltext filter + hide-empty option
+// SELECT 
+//     s.*,
+//     COUNT(sp.supplier_product_id) AS product_count
+// FROM supplier s
+// LEFT JOIN supplier_product sp 
+//     ON s.supplier_id = sp.supplier_id
+// //WHERE MATCH(s.supplier_name, s.supplier_email, s.supplier_uen, s.supplier_contact_number)
+// //      AGAINST ('Hak <-- SEARCH QUERY*' IN BOOLEAN MODE)
+// GROUP BY s.supplier_id
+// HAVING product_count > 0
+// ORDER BY s.supplier_name ASC;
 export const searchSupplier = async (req, res) => {
-    const { q } = req.query; // get search query from ?q=
-    try {
-        if (!q || q.trim() === "") {
-            // if empty query, return all suppliers
-            const [rows] = await pool.query("SELECT * FROM supplier ORDER BY supplier_name ASC");
-            return res.status(200).json(rows);
-        }
+  const { q, hideEmpty } = req.query; // e.g. /api/supplier/search?q=BATCHA&hideEmpty=true
+  try {
+    // Base query
+    let sql = `
+      SELECT s.*, COUNT(sp.supplier_product_id) AS product_count
+      FROM supplier s
+      LEFT JOIN supplier_product sp ON s.supplier_id = sp.supplier_id
+    `;
+    const params = [];
 
-        // Use FULLTEXT BOOLEAN MODE for partial search (prefix match)
-        const [rows] = await pool.query(
-            `SELECT * FROM supplier 
-            WHERE MATCH(supplier_name, supplier_email, supplier_uen, supplier_contact_number)
-            AGAINST (? IN BOOLEAN MODE)`,
-            [`${q}*`]
-        );
-
-        res.status(200).json(rows);
-    } 
-    catch (err) {
-        console.error("Error searching suppliers:", err);
-        res.status(500).json({ message: err.message });
+    // WHERE (optional fulltext search)
+    if (q && q.trim() !== "") {
+      sql += `
+        WHERE MATCH(s.supplier_name, s.supplier_email, s.supplier_uen, s.supplier_contact_number)
+        AGAINST (? IN BOOLEAN MODE)
+      `;
+      params.push(`${q}*`);
     }
+
+    // Group and optionally filter suppliers with zero products
+    sql += `
+      GROUP BY s.supplier_id
+      ${hideEmpty === "true" ? "HAVING product_count > 0" : ""}
+      ORDER BY s.supplier_name ASC
+    `;
+
+    const [rows] = await pool.query(sql, params);
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error("Error searching suppliers:", err);
+    res.status(500).json({ message: err.message });
+  }
 };
