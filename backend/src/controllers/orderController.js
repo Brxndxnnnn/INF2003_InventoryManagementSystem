@@ -12,6 +12,22 @@ export const getAllOrders = async (req, res) => {
     }
 };
 
+// Get order by Shop
+export const getOrderByShop = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [rows] = await pool.query("SELECT * FROM `order` WHERE shop_id = ? ORDER BY created_at DESC", [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: "Order not found." });
+        }
+        res.status(200).json(rows);
+    } 
+    catch (err) {
+        console.error(`Error fetching order ${id}:`, err);
+        res.status(500).json({ message: err.message });
+    }
+};
+
 // Get order by ID
 export const getOrderById = async (req, res) => {
     const { id } = req.params;

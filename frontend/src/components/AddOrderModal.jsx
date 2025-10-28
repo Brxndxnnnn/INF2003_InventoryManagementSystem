@@ -1,30 +1,32 @@
 import React, { useEffect, useState } from "react";
 import api from "../api.js";
 
-const AddOrderModal = ({ shopId, onClose }) => {
+const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
   const [step, setStep] = useState(1);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [cart, setCart] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [hideEmpty, setHideEmpty] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
     quantity: "",
     delivery_notes: "",
   });
 
-  const fetchSuppliers = async (query = "") => {
-  try {
+  const fetchSuppliers = async (query = "", hide = hideEmpty) => {
+    try {
       const endpoint = query.trim()
-      ? `/api/supplier/search?q=${encodeURIComponent(query)}`: `/api/supplier/`;
-        const { data } = await api.get(endpoint);
-        setSuppliers(Array.isArray(data) ? data : []);
+        ? `/api/supplier/search?q=${encodeURIComponent(query)}&hideEmpty=${hide}`
+        : `/api/supplier/search?hideEmpty=${hide}`;
+      const { data } = await api.get(endpoint);
+      setSuppliers(Array.isArray(data) ? data : []);
     } catch (err) {
-        console.error(err);
-        setSuppliers([]);
+      console.error(err);
+      setSuppliers([]);
     }
-    };
+  };
 
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
@@ -55,6 +57,7 @@ const AddOrderModal = ({ shopId, onClose }) => {
         }
         await updateOrderTotalPrice(orderId); // Update order price
         alert("Order placed");
+        onSuccess();
         onClose();
     }
     catch (err){
@@ -110,11 +113,15 @@ const AddOrderModal = ({ shopId, onClose }) => {
         {step === 1 && (
           <>
             <h3>1. Select Supplier to Order From</h3>
-            <form style={{ border: "none", boxShadow: "none" }}>
+            <form style={{ border: "none", boxShadow: "none", padding: "20px 0px" }}>
             <input type="text" name="search_supplier"  placeholder="Search for suppliers" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <label htmlFor="hide_supplier" style={{ whiteSpace: "nowrap" }}> Hide suppliers with no available products: </label>
+              <input type="checkbox" name="hide_supplier" style={{ width:"16px", cursor: "pointer", margin:"0px" }} checked={hideEmpty} onChange={(e) => {setHideEmpty(e.target.checked); fetchSuppliers(searchTerm, e.target.checked)}}></input>
+            </div>
             </form>
             <div
-              style={{ maxHeight: "300px", overflowY: "auto", marginTop: "25px", marginBottom: "25px", borderColor:"lightgrey", borderWidth:"1px",   borderStyle: "solid",  }}
+              style={{ maxHeight: "300px", overflowY: "auto", marginBottom: "25px", borderColor:"lightgrey", borderWidth:"1px",   borderStyle: "solid",  }}
             >
               {suppliers.map((s) => (
                 <div
@@ -125,6 +132,9 @@ const AddOrderModal = ({ shopId, onClose }) => {
                   onClick={() => setSelectedSupplier(s)}
                 >
                   <h4>{s.supplier_name}</h4>
+                  <h6>{s.supplier_contact_number || "N/A"}</h6>
+                  <h6>{s.supplier_email || "N/A"}</h6>
+                  <h6>{s.supplier_uen}</h6>
                 </div>
               ))}
             </div>
@@ -245,6 +255,7 @@ const AddOrderModal = ({ shopId, onClose }) => {
         {step === 4 && (
         <>
             <h3>4. Review Your Order</h3>
+            <div style={{ padding:"20px"}}>
             {cart.length > 0 ? (
             <ul style={{ marginBottom: "1rem" }}>
                 {cart.map((item, idx) => (
@@ -258,8 +269,8 @@ const AddOrderModal = ({ shopId, onClose }) => {
             </ul>
             ) : (
             <p>Your order is empty.</p>
-            )}
-
+            )}        
+            </div>
             <div className="modal-actions">
             <button className="cancel-btn" onClick={() => { setCart([]); onClose(); }}>
                 Cancel
@@ -269,7 +280,7 @@ const AddOrderModal = ({ shopId, onClose }) => {
             </button>
             <button
                 className="submit-btn"
-                onClick={() => {placeOrder(cart)}}
+                onClick={() => {placeOrder(cart);}}
                 disabled={cart.length === 0}
             >
                 Submit Order

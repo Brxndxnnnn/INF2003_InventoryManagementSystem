@@ -6,6 +6,7 @@ import shopRoute from './routes/shopRoute.js';
 import supplierRoute from './routes/supplierRoute.js';
 import categoryRoute from './routes/categoryRoute.js';
 import productRoute from './routes/productRoute.js';
+import shopInventoryRoute from  './routes/shopInventoryRoute.js'
 import supplierProductRoute from './routes/supplierProductRoute.js';
 import orderRoute from './routes/orderRoute.js';
 import orderItemRoute from './routes/orderItemRoute.js';
@@ -31,6 +32,7 @@ app.use("/api/shop", shopRoute)
 app.use("/api/supplier", supplierRoute)
 app.use("/api/category", categoryRoute)
 app.use("/api/product", productRoute)
+app.use("/api/shop-inventory", shopInventoryRoute)
 app.use("/api/supplier-product", supplierProductRoute)
 app.use("/api/order", orderRoute)
 app.use("/api/order-item", orderItemRoute)
