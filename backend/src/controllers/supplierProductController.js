@@ -40,7 +40,7 @@ export const getSupplierProductBySupplier = async (req, res) => {
         sp.created_at,
         sp.updated_at,
         p.product_name,
-        p.unit_of_measure,
+        p.image,
         c.category_name
       FROM supplier_product sp
       JOIN product p ON sp.product_id = p.product_id
