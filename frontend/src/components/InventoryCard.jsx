@@ -3,6 +3,7 @@ import React from "react";
 const InventoryCard = ({ inventory, onEdit, onDelete }) => {
   const id = inventory.shop_inventory_id;
   const product_name = inventory.product_name;
+  const image = inventory.image
   const description = inventory.description;
   const current_stock = inventory.current_stock;
   const reorder_level = inventory.reorder_level;
@@ -13,6 +14,9 @@ const InventoryCard = ({ inventory, onEdit, onDelete }) => {
 
   return (
     <div className="shop-card">
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <img src={image} style={{ width: "50%", height: "50%", objectFit: "cover" }} />
+      </div>
       <h3 className="shop-name">{product_name}</h3>
       <p>{description}</p>
       <p><strong>Current Stock Quantity:</strong> {current_stock}</p>
