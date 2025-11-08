@@ -33,6 +33,12 @@ export const loginUser = async (req, res) => {
 
     const user = rows[0];
 
+    // Update last_login timestamp
+    await pool.query(
+      "UPDATE user SET last_login = NOW() WHERE user_id = ?",
+      [user.user_id]
+    );
+
     res.status(200).json({
       message: "Login successful.",
       user: {

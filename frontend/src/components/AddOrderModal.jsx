@@ -50,8 +50,9 @@ const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
 
   // Create Order
   const placeOrder = async (cart) => {
+    let orderId = null;
     try{
-        const orderId = await createOrder(); // Create order 
+        orderId = await createOrder(); // Create order 
         for(const item of cart){ // Create individual order items
         await createOrderItem(orderId, item);
         }
@@ -61,7 +62,18 @@ const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
         onClose();
     }
     catch (err){
-        alert(err)
+        // If order was created but items failed, delete the order
+        if (orderId) {
+          try {
+            await api.delete(`/api/order/${orderId}`);
+          } catch (deleteErr) {
+            console.error("Error cleaning up order:", deleteErr);
+          }
+        }
+        
+        // Display proper error message
+        const errorMessage = err.response?.data?.message || err.message || "Failed to place order";
+        alert(errorMessage);
     }
   };
 
@@ -73,7 +85,8 @@ const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
         return data.order_id
     }
     catch (err){
-        alert(err)
+        const errorMessage = err.response?.data?.message || err.message || "Failed to create order";
+        throw new Error(errorMessage);
     }
   }
 
@@ -92,7 +105,8 @@ const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
         await api.post(endpoint, payload);
     }
     catch (err){
-        alert(err)
+        const errorMessage = err.response?.data?.message || err.message || "Failed to create order item";
+        throw new Error(errorMessage);
     }
   }
 
@@ -102,7 +116,8 @@ const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
         await api.patch(endpoint);
     }
     catch (err){
-        alert(err)
+        const errorMessage = err.response?.data?.message || err.message || "Failed to update order total";
+        throw new Error(errorMessage);
     }
   }
 
