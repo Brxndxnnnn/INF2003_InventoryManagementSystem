@@ -10,6 +10,7 @@ import shopInventoryRoute from  './routes/shopInventoryRoute.js'
 import supplierProductRoute from './routes/supplierProductRoute.js';
 import orderRoute from './routes/orderRoute.js';
 import orderItemRoute from './routes/orderItemRoute.js';
+import analyticsRoute from './routes/analyticsRoute.js';
 
 const app = express()
 
@@ -36,6 +37,7 @@ app.use("/api/shop-inventory", shopInventoryRoute)
 app.use("/api/supplier-product", supplierProductRoute)
 app.use("/api/order", orderRoute)
 app.use("/api/order-item", orderItemRoute)
+app.use("/api/analytics", analyticsRoute)
 
 app.listen(process.env.CLIENT_PORT, () =>
   console.log(`Server running on http://localhost:${process.env.CLIENT_PORT}`)

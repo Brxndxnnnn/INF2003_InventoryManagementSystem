@@ -5,6 +5,7 @@ import AuthPage from './pages/AuthPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import ShopPage from './pages/ShopPage.jsx';
 import SupplierPage from './pages/SupplierPage.jsx';
+import AnalyticsPage from './pages/AnalyticsPage.jsx';
 
 const App = () => {
   return <div>
@@ -17,6 +18,7 @@ const App = () => {
             <Route path='/home' element={<HomePage/>} />
             <Route path='/shop/:id' element={<ShopPage/>} />
             <Route path='/supplier/:id' element={<SupplierPage/>} />
+            <Route path='/:id/analytics' element={<AnalyticsPage/>}/>
       </Route>
     </Routes>
   </div>
