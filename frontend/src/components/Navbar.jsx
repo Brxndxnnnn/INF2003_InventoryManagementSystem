@@ -17,7 +17,7 @@ const Navbar = () => {
 
             <div className="navbar-middle">
                 <a href="/home" className="link-text" style={{ margin: "0 1rem" }}>Home</a>
-                <a href="#" className="link-text" style={{ margin: "0 1rem" }}>Analytics</a>
+                <a href={`/${user.user_id}/analytics`} className="link-text" style={{ margin: "0 1rem" }}>Analytics</a>
             </div>
 
             <div className="navbar-right">
