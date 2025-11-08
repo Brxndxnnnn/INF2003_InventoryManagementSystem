@@ -56,6 +56,24 @@ export const createOrderItem = async (req, res) => {
     }
 
     try {
+        // Check MOQ (Minimum Order Quantity)
+        const [supplierProduct] = await pool.query(
+            "SELECT min_order_quantity FROM supplier_product WHERE supplier_product_id = ?",
+            [supplier_product_id]
+        );
+
+        if (supplierProduct.length === 0) {
+            return res.status(404).json({ message: "Supplier product not found" });
+        }
+
+        const moq = supplierProduct[0].min_order_quantity;
+        
+        if (quantity_ordered < moq) {
+            return res.status(400).json({ 
+                message: `Order quantity (${quantity_ordered}) is below the minimum order quantity (${moq})` 
+            });
+        }
+
         await pool.query(
             `INSERT INTO order_item (
                 order_id, supplier_product_id, quantity_ordered, unit_price,
