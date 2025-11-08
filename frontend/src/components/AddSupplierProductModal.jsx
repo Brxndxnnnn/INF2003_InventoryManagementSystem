@@ -57,6 +57,7 @@ const AddSupplierProductModal = ({ supplierId, onClose, onSuccess }) => {
 
   // Input change
   const handleFormChange = (e) => {
+    console.log(selectedProduct);
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -112,17 +113,16 @@ const AddSupplierProductModal = ({ supplierId, onClose, onSuccess }) => {
               {products.length > 0 ? (
                 products.map((p) => (
                   <div
-                    key={p.supplier_product_id || p.product_id}
-                    className={`product-card ${selectedProduct?.supplier_product_id === p.supplier_product_id ? "selected" : ""}`}
+                    key={p.product_id}
+                    className={`product-card ${selectedProduct?.product_id === p.product_id ? "selected" : ""}`}
                     onClick={() => setSelectedProduct(p)}
-                    style={{ display: "flex", padding: "10px", alignItems: "center", border: selectedProduct?.supplier_product_id === p.supplier_product_id ? "2px solid #007bff" : "1px solid #ccc", marginBottom: "10px", borderRadius: "6px", cursor: "pointer" }}
+                    style={{ display: "flex", padding: "10px", alignItems: "center", border: selectedProduct?.product_id === p.product_id ? "2px solid #007bff" : "1px solid #ccc", marginBottom: "10px", borderRadius: "6px", cursor: "pointer" }}
                   >
                     <div style={{ width: "80px", height: "80px", marginRight: "10px", flexShrink: 0, overflow: "hidden" }}>
                       <img src={p.image} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     </div>
                     <div>
                       <h4>{p.product_name}</h4>
-                      <small>Price: ${p.unit_price} | Stock: {p.stock_quantity}</small>
                     </div>
                   </div>
                 ))
@@ -141,7 +141,6 @@ const AddSupplierProductModal = ({ supplierId, onClose, onSuccess }) => {
                 disabled={!selectedProduct}
                 onClick={() => {
                   if (selectedProduct) {
-                    console.log("Proceeding to Step 2 with:", selectedProduct);
                     setStep(2);
                   }
                 }}
