@@ -162,26 +162,30 @@ const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
         {step === 2 && selectedSupplier && (
           <>
             <h3>2. Select Product from {selectedSupplier.supplier_name}</h3>
-            <div className="product-list">
+            <div style={{ maxHeight: "300px", overflowY: "auto", margin: "20px 0", border: "1px solid lightgray"}}>
               {products.length > 0 ? (
                 products.map((p) => (
-                  <div
-                    key={p.supplier_product_id || p.product_id}
-                    className={`product-card ${
-                      selectedProduct?.supplier_product_id === p.supplier_product_id ? "selected" : ""
-                    }`}
-                    onClick={() => setSelectedProduct(p)}
-                  >
-                    <h4>{p.product_name}</h4>
-                    <small>
-                      Price: ${p.unit_price} | Stock: {p.stock_quantity}
-                    </small>
+                  <div 
+                  key={p.supplier_product_id || p.product_id} 
+                  className={`product-card ${selectedProduct?.supplier_product_id === p.supplier_product_id ? "selected" : ""}`}
+                  onClick={() => setSelectedProduct(p)}
+                  style={{ display: "flex", padding: "10px", alignItems: "center", border: selectedProduct?.supplier_product_id === p.supplier_product_id ? "2px solid #007bff" : "1px solid #ccc", marginBottom: "10px", borderRadius: "6px", cursor: "pointer" }}>
+                    <div style={{width: "80px", height:"80px", marginRight: "10px",flexShrink: 0,overflow: "hidden"}}>
+                    <img src={p.image} style={{width: "100%", height: "100%",objectFit: "cover",}}/>
+                    </div>
+                    <div>
+                      <h4>{p.product_name}</h4>
+                      <small>
+                        Price: ${p.unit_price} | Stock: {p.stock_quantity}
+                      </small>
+                    </div>
                   </div>
                 ))
               ) : (
                 <p>No products available.</p>
               )}
             </div>
+
             <div className="modal-actions">
               <button className="cancel-btn" onClick={() => setStep(1)}>
                 Back

@@ -7,6 +7,7 @@ const AddSupplierProductModal = ({ supplierId, onClose, onSuccess }) => {
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
     sku: "",
     unit_price: "",
@@ -24,12 +25,13 @@ const AddSupplierProductModal = ({ supplierId, onClose, onSuccess }) => {
     }
   };
 
-  const fetchProducts = async (categoryId = "") => {
+  const fetchProducts = async () => {
     try {
-      const endpoint = categoryId
-        ? `/api/product/category/${categoryId}`
-        : `/api/product`;
-      const { data } = await api.get(endpoint);
+      const params = new URLSearchParams();
+      if (searchTerm.trim()) params.append("q", searchTerm.trim());
+      if (selectedCategory) params.append("categoryId", selectedCategory);
+
+      const { data } = await api.get(`/api/product/search?${params.toString()}`);
       setProducts(data);
     } catch (err) {
       console.error("Error fetching products:", err);
@@ -37,12 +39,13 @@ const AddSupplierProductModal = ({ supplierId, onClose, onSuccess }) => {
     }
   };
 
+
   useEffect(() => {
-    if (step === 1) {
-      fetchCategories();
-      fetchProducts();
-    }
-  }, [step]);
+    const delay = setTimeout(() => {
+      if (step === 1) fetchProducts(); fetchCategories();
+    }, 400);
+    return () => clearTimeout(delay);
+  }, [searchTerm, selectedCategory, step]);
 
   // Category filter change
   const handleCategoryChange = (e) => {
@@ -54,6 +57,7 @@ const AddSupplierProductModal = ({ supplierId, onClose, onSuccess }) => {
 
   // Input change
   const handleFormChange = (e) => {
+    console.log(selectedProduct);
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -91,9 +95,9 @@ const AddSupplierProductModal = ({ supplierId, onClose, onSuccess }) => {
             <div style={{display: "flex", alignItems: "center", gap: "10px", margin: "20px 0"}}>
                   <input
                     type="text"
-                    placeholder="Search products... (WIP - wait for sample data)"
-                    // value={searchTerm}
-                    // onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search products"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     style={{ height: "40px", margin:"0px"}}
                 />
                 <select name="category_id" value={selectedCategory} onChange={handleCategoryChange}>
@@ -105,36 +109,25 @@ const AddSupplierProductModal = ({ supplierId, onClose, onSuccess }) => {
                 ))}
                 </select>
             </div>
-            <div style={{ maxHeight: "300px", overflowY: "auto", margin: "20px 0", border: "1px solid lightgray"}}>
+            <div style={{ maxHeight: "300px", overflowY: "auto", margin: "20px 0", border: "1px solid lightgray" }}>
               {products.length > 0 ? (
                 products.map((p) => (
                   <div
                     key={p.product_id}
-                    className={`product-card ${
-                      selectedProduct?.product_id === p.product_id
-                        ? "selected"
-                        : ""
-                    }`}
+                    className={`product-card ${selectedProduct?.product_id === p.product_id ? "selected" : ""}`}
                     onClick={() => setSelectedProduct(p)}
-                    style={{
-                      padding: "10px",
-                      border:
-                        selectedProduct?.product_id === p.product_id
-                          ? "2px solid #007bff"
-                          : "1px solid #ccc",
-                      marginBottom: "10px",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                    }}
+                    style={{ display: "flex", padding: "10px", alignItems: "center", border: selectedProduct?.product_id === p.product_id ? "2px solid #007bff" : "1px solid #ccc", marginBottom: "10px", borderRadius: "6px", cursor: "pointer" }}
                   >
-                    <h4>{p.product_name}</h4>
-                    <small>{p.description || "No description"}</small>
-                    <br />
-                    <small>Unit: {p.unit_of_measure}</small>
+                    <div style={{ width: "80px", height: "80px", marginRight: "10px", flexShrink: 0, overflow: "hidden" }}>
+                      <img src={p.image} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </div>
+                    <div>
+                      <h4>{p.product_name}</h4>
+                    </div>
                   </div>
                 ))
               ) : (
-                <p>No products found.</p>
+                <p>No products available.</p>
               )}
             </div>
 
@@ -148,7 +141,6 @@ const AddSupplierProductModal = ({ supplierId, onClose, onSuccess }) => {
                 disabled={!selectedProduct}
                 onClick={() => {
                   if (selectedProduct) {
-                    console.log("Proceeding to Step 2 with:", selectedProduct);
                     setStep(2);
                   }
                 }}

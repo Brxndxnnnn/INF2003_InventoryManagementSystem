@@ -17,7 +17,7 @@ export const getShopInventoryByShop = async (req, res) => {
   const { id } = req.params;
   try {
     const [rows] = await pool.query(`
-      SELECT si.*, p.product_name, p.description FROM shop_inventory si
+      SELECT si.*, p.product_name, p.description, p.image FROM shop_inventory si
       LEFT JOIN product p ON si.product_id = p.product_id
       WHERE shop_id = ?;
     `, [id]);
