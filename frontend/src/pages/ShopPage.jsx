@@ -7,145 +7,217 @@ import ShopOrderCard from "../components/ShopOrderCard.jsx";
 import InventoryCard from "../components/InventoryCard.jsx";
 
 const ShopPage = () => {
-    const { id } = useParams();
-    const [shop, setShop] = useState([]);
-    const [inventory, setInventory] = useState([]);
-    const [orders, setOrders] = useState([]);
-    const [orderItems, setOrderItems] = useState([]);
-    const [showOrderModal, setShowOrderModal] = useState(false);
+  const { id } = useParams();
+  const [shop, setShop] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [orderItems, setOrderItems] = useState({});
+  const [showOrderModal, setShowOrderModal] = useState(false);
 
-    const fetchShop = async () => {
-        const { data } = await api.get(`/api/shop/${id}`);
-        setShop(data);
-    };
+  const fetchShop = async () => {
+    const { data } = await api.get(`/api/shop/${id}`);
+    setShop(data);
+  };
 
-    const fetchInventory = async () => {
-        const { data } = await api.get(`/api/shop-inventory/shop/${id}`);
-        setInventory(data);
-    };
+  const fetchInventory = async () => {
+    const { data } = await api.get(`/api/shop-inventory/shop/${id}`);
+    setInventory(data);
+  };
 
-    const fetchOrders = async () => {
-        const { data } = await api.get(`/api/order/shop/${id}`);
-        setOrders(data.map((o) => ({ ...o, expanded: false })));
+  const fetchOrders = async () => {
+    const { data } = await api.get(`/api/order/shop/${id}`);
+    setOrders(data.map((o) => ({ ...o, expanded: false })));
+  };
+
+  // Lazy loading: fetch order items only when a specific order is expanded
+  const fetchOrderItems = async (orderId) => {
+    const { data } = await api.get(`/api/order-item/${orderId}`);
+    setOrderItems((prev) => ({ ...prev, [orderId]: data }));
+  };
+
+  useEffect(() => {
+    if (id) {
+      fetchShop();
+      fetchOrders();
+      fetchInventory();
     }
+  }, [id]);
 
-    // Lazy loading = fetch order items when u expand the fetch orders section
-    const fetchOrderItems = async (orderId) => {
-        const { data } = await api.get(`/api/order-item/${orderId}`);
-        setOrderItems((prev) => ({...prev, [orderId]: data,}));
-    };
-
-    useEffect(() => {if (id) fetchShop(); fetchOrders(); fetchInventory();}, [id]);
-
-    const handleToggleOrder = (orderId) => {
+  const handleToggleOrder = (orderId) => {
     setOrders((prev) =>
-        prev.map((o) =>
+      prev.map((o) =>
         o.order_id === orderId ? { ...o, expanded: !o.expanded } : o
-        )
+      )
     );
 
     if (!orderItems[orderId]) {
-        fetchOrderItems(orderId);
+      fetchOrderItems(orderId);
     }
-    };
+  };
 
-    const handleOrderStatus = async (orderItem, status) => {
+  const handleOrderStatus = async (orderItem, status) => {
     try {
-        const endpoint = `/api/order-item/${orderItem.order_item_id}`;
-        const payload = { item_status: status };
+      const endpoint = `/api/order-item/${orderItem.order_item_id}`;
+      const payload = { item_status: status };
 
-        const { data } = await api.patch(endpoint, payload);
+      const { data } = await api.patch(endpoint, payload);
 
-        alert(data.message);
-        fetchInventory();
-        fetchOrders();
-        fetchOrderItems(orderItem.order_id)
-        fetchShop();
-
+      alert(data.message);
+      fetchInventory();
+      fetchOrders();
+      fetchOrderItems(orderItem.order_id);
+      fetchShop();
     } catch (err) {
-        alert(orderItem.order_id);
+      alert(orderItem.order_id);
     }
-    };
-
-
+  };
 
   return (
-    <div>
+    <div className="shop-page">
       <Navbar />
       <div className="container2">
-        <h2>{shop.shop_name}</h2>
-        <p><strong>Address:</strong> {shop.shop_address || "N/A"}</p>
-        <p><strong>Contact:</strong> {shop.shop_contact_number || "N/A"}</p>
-        <p><strong>Email:</strong> {shop.shop_email || "N/A"}</p>
-        <p><strong>UEN:</strong> {shop.shop_uen || "N/A"}</p>
+        {/* Header */}
+        <div className="page-header">
+          <div>
+            <h1>Shop: {shop.shop_name || "Unknown shop"}</h1>
+            <p className="subtitle">
+              Track this shop&apos;s inventory and orders to suppliers.
+            </p>
+          </div>
+          <div className="meta-badge">Internal Outlet</div>
+        </div>
+
+        {/* Shop details */}
+        <div className="info-grid">
+          <div className="info-item">
+            <p className="label">UEN</p>
+            <p className="value">{shop.shop_uen || "N/A"}</p>
+          </div>
+          <div className="info-item">
+            <p className="label">Contact</p>
+            <p className="value">{shop.shop_contact_number || "N/A"}</p>
+          </div>
+          <div className="info-item">
+            <p className="label">Email</p>
+            <p className="value">{shop.shop_email || "N/A"}</p>
+          </div>
+          <div className="info-item info-item-wide">
+            <p className="label">Address</p>
+            <p className="value">{shop.shop_address || "N/A"}</p>
+          </div>
+        </div>
+
+        {/* Simple KPIs for quick glance */}
+        <div className="kpi-row">
+          <div className="kpi-card">
+            <span className="kpi-label">Total Orders</span>
+            <span className="kpi-value">{orders.length}</span>
+          </div>
+          <div className="kpi-card">
+            <span className="kpi-label">Inventory Items</span>
+            <span className="kpi-value">{inventory.length}</span>
+          </div>
+        </div>
+
         <hr />
 
-        <div className="header-row" style={{ display: "flex", justifyContent: "space-between", alignProducts: "center" }}>
-            <h2>Inventory</h2>
+        {/* Inventory section */}
+        <div className="header-row">
+          <h2>Inventory</h2>
         </div>
-        <div className="shop-grid">
-        {inventory.length > 0 ? (
-            inventory.map((inventory) => <InventoryCard key={inventory.shop_inventory_id} inventory={inventory}/>)
-        ) : (
+
+        <div className="inventory-grid">
+          {inventory && inventory.length > 0 ? (
+            inventory.map((item) => (
+              <InventoryCard key={item.shop_inventory_id} inventory={item} />
+            ))
+          ) : (
             <p>No inventory records found.</p>
-        )}
+          )}
         </div>
 
         <hr />
 
-        <div className="header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2>Orders</h2>
-          <button onClick={() => setShowOrderModal(true)} className="add-btn">+ Order Product</button>
+        {/* Orders section */}
+        <div className="header-row">
+          <h2>Orders to suppliers</h2>
+          <button
+            onClick={() => setShowOrderModal(true)}
+            className="add-btn"
+          >
+            + Order Product
+          </button>
         </div>
 
         <div className="orders-section">
-          {orders.length > 0 ? (
-            orders.map((order) => (
-              <div key={order.order_id} style={{ border: "1px solid #ccc", borderRadius: "8px", marginBottom: "10px", overflow: "hidden" }}>
-                <div
-                  onClick={() => handleToggleOrder(order.order_id)}
-                  style={{
-                    background: "#f7f7f7",
-                    padding: "12px 16px",
-                    cursor: "pointer",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center"
-                  }}
-                >
-                  <div>
-                    <strong>Order #{order.order_id}</strong> — Total: ${order.total_price}<br />
-                    <small>Created: {new Date(order.created_at).toLocaleString()}</small>
+          {orders && orders.length > 0 ? (
+            orders.map((order) => {
+              const itemsForOrder = orderItems[order.order_id] || [];
+              return (
+                <div key={order.order_id} className="order-card">
+                  <div
+                    className="order-card-header"
+                    onClick={() => handleToggleOrder(order.order_id)}
+                  >
+                    <div>
+                      <strong>Order #{order.order_id}</strong>
+                      {typeof order.total_price !== "undefined" && (
+                        <> — Total: ${order.total_price}</>
+                      )}
+                      <br />
+                      {order.created_at && (
+                        <small>
+                          Created:{" "}
+                          {new Date(order.created_at).toLocaleString()}
+                        </small>
+                      )}
+                    </div>
+                    <div className="order-card-toggle">
+                      {order.expanded ? "−" : "+"}
+                    </div>
                   </div>
-                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>{order.expanded ? "−" : "+"}</div>
-                </div>
 
-                {order.expanded && (
-                  <div className="shop-grid" style={{padding: "10px 16px", borderTop: "1px solid #ddd" }}>
-                    {orderItems[order.order_id] ? (
-                      orderItems[order.order_id].length > 0 ? (
-                        orderItems[order.order_id].map((orderItem) => (
-                          <ShopOrderCard key={orderItem.order_item_id} order={orderItem} onDelivered={() => handleOrderStatus(orderItem, "delivered")} />
-                        ))
+                  {order.expanded && (
+                    <div className="order-card-body">
+                      {orderItems[order.order_id] ? (
+                        itemsForOrder.length > 0 ? (
+                          <div className="shop-grid">
+                            {itemsForOrder.map((orderItem) => (
+                              <ShopOrderCard
+                                key={orderItem.order_item_id}
+                                orderItem={orderItem}
+                                onDelivered={() =>
+                                  handleOrderStatus(orderItem, "delivered")
+                                }
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <p>No order items found.</p>
+                        )
                       ) : (
-                        <p>No order items found.</p>
-                      )
-                    ) : (
-                      <p>Loading...</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))
+                        <p>Loading...</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
           ) : (
             <p>No orders yet.</p>
           )}
         </div>
       </div>
 
-      {showOrderModal && <AddOrderModal shopId={id} onClose={() => setShowOrderModal(false)} onSuccess={() => fetchOrders()} />}
+      {showOrderModal && (
+        <AddOrderModal
+          shopId={id}
+          onClose={() => setShowOrderModal(false)}
+          onSuccess={() => fetchOrders()}
+        />
+      )}
     </div>
   );
 };
 
-export default ShopPage
+export default ShopPage;
