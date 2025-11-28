@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router";
 import Navbar from "../components/Navbar";
 import api from "../api.js";
@@ -7,215 +7,254 @@ import ShopOrderCard from "../components/ShopOrderCard.jsx";
 import InventoryCard from "../components/InventoryCard.jsx";
 
 const ShopPage = () => {
-  const { id } = useParams();   // or useLocation if you choose Option B
-  const [shop, setShop] = useState([]);
-  const [inventory, setInventory] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [orderItems, setOrderItems] = useState({});
-  const [showOrderModal, setShowOrderModal] = useState(false);
+    const { id } = useParams();
+    const [shop, setShop] = useState([]);
+    const [inventory, setInventory] = useState([]);
+    const [orders, setOrders] = useState([]);
+    const [ordersPage, setOrdersPage] = useState(1);
+    const [ordersHasMore, setOrdersHasMore] = useState(true);
+    const [ordersLoading, setOrdersLoading] = useState(false);
+    const [orderItems, setOrderItems] = useState([]);
+    const [showOrderModal, setShowOrderModal] = useState(false);
 
-  const fetchShop = async () => {
-    const { data } = await api.get(`/api/shop/${id}`);
-    setShop(data);
-  };
+    const fetchShop = async () => {
+        const { data } = await api.get(`/api/shop/${id}`);
+        setShop(data);
+    };
 
-  const fetchInventory = async () => {
-    const { data } = await api.get(`/api/shop-inventory/shop/${id}`);
-    setInventory(data);
-  };
+    const fetchInventory = async () => {
+        const { data } = await api.get(`/api/shop-inventory/shop/${id}`);
+        setInventory(data);
+    };
 
-  const fetchOrders = async () => {
-    const { data } = await api.get(`/api/order/shop/${id}`);
-    setOrders(data.map((o) => ({ ...o, expanded: false })));
-  };
+    const fetchOrders = async (pageNum = 1) => {
+      try {
+        setOrdersLoading(true);
 
-  const fetchOrderItems = async (orderId) => {
-    const { data } = await api.get(`/api/order-item/${orderId}`);
-    setOrderItems((prev) => ({ ...prev, [orderId]: data }));
-  };
+        const { data } = await api.get(`/api/order/shop/${id}`, {
+          params: { page: pageNum, limit: 5 }, // pick whatever limit you like
+        });
 
-  useEffect(() => {
-    if (id) {
-      fetchShop();
-      fetchInventory();
-      fetchOrders();
-    }
-  }, [id]);
+        const rows = Array.isArray(data) ? data : [];
 
-  const handleToggleOrder = (orderId) => {
+        if (pageNum === 1) {
+          setOrders(rows.map((o) => ({ ...o, expanded: false })));
+        } else {
+          setOrders((prev) => [
+            ...prev,
+            ...rows.map((o) => ({ ...o, expanded: false })),
+          ]);
+        }
+
+        // Like your product lazy load: if less than limit, no more pages
+        if (rows.length < 5) setOrdersHasMore(false);
+        else setOrdersHasMore(true);
+      } catch (err) {
+        console.error("Error fetching orders:", err);
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+
+    // fetch order items when u expand the fetch orders section
+    const fetchOrderItems = async (orderId) => {
+        const { data } = await api.get(`/api/order-item/${orderId}`);
+        setOrderItems((prev) => ({...prev, [orderId]: data,}));
+    };
+
+    useEffect(() => {
+      if (id) {
+        fetchShop();
+        fetchInventory();
+        setOrders([]);
+        setOrdersPage(1);
+        setOrdersHasMore(true);
+        fetchOrders(1);
+      }
+    }, [id]);
+
+
+    useEffect(() => {
+      const handleScroll = () => {
+        if (!ordersHasMore || ordersLoading) return;
+
+        const scrollPosition = window.innerHeight + window.scrollY;
+        const threshold = document.body.offsetHeight - 200; // start loading 200px before bottom
+
+        if (scrollPosition >= threshold) {
+          setOrdersPage((prev) => prev + 1);
+        }
+      };
+
+      window.addEventListener("scroll", handleScroll);
+      return () => window.removeEventListener("scroll", handleScroll);
+    }, [ordersHasMore, ordersLoading]);
+
+    useEffect(() => {
+      if (ordersPage > 1 && id) {
+        fetchOrders(ordersPage);
+      }
+    }, [ordersPage, id]);
+
+    const handleToggleOrder = (orderId) => {
     setOrders((prev) =>
-      prev.map((o) =>
+        prev.map((o) =>
         o.order_id === orderId ? { ...o, expanded: !o.expanded } : o
-      )
+        )
     );
 
     if (!orderItems[orderId]) {
-      fetchOrderItems(orderId);
+        fetchOrderItems(orderId);
     }
-  };
+    };
 
-  const handleOrderStatus = async (orderItem, status) => {
+    const handleOrderStatus = async (orderItem, status) => {
     try {
-      const endpoint = `/api/order-item/${orderItem.order_item_id}`;
-      const payload = { item_status: status };
+        const endpoint = `/api/order-item/${orderItem.order_item_id}`;
+        const payload = { item_status: status };
 
-      const { data } = await api.patch(endpoint, payload);
+        const { data } = await api.patch(endpoint, payload);
 
-      alert(data.message);
-      fetchInventory();
-      fetchOrders();
-      fetchOrderItems(orderItem.order_id);
-      fetchShop();
+        alert(data.message);
+        fetchInventory();
+        fetchOrders();
+        fetchOrderItems(orderItem.order_id)
+        fetchShop();
+
     } catch (err) {
-      alert(orderItem.order_id);
+        alert(orderItem.order_id);
     }
-  };
+    };
+
+    const handleEditInventory = async (inventoryId, updates) => {
+      try {
+        await api.patch(`/api/shop-inventory/${inventoryId}`, updates);
+        await fetchInventory();
+      } catch (err) {
+        const msg =
+          err.response?.data?.message || err.message || "Failed to update inventory";
+        alert(msg);
+      }
+    };
+
+    const handleDeleteInventory = async (inventoryId) => {
+      if (!window.confirm("Are you sure you want to delete this inventory item?")) return;
+
+      try {
+        await api.delete(`/api/shop-inventory/${inventoryId}`);
+        setInventory((prev) =>
+          prev.filter((item) => item.shop_inventory_id !== inventoryId)
+        );
+      } catch (err) {
+        const msg =
+          err.response?.data?.message || err.message || "Failed to delete inventory";
+        alert(msg);
+      }
+    };
+
+
 
   return (
-    <div className="shop-page">
+    <div>
       <Navbar />
       <div className="container2">
-        {/* Header – same style as SupplierPage */}
-        <div className="page-header">
-          <div>
-            <h1>Shop: {shop.shop_name || "Unknown shop"}</h1>
-            <p className="subtitle">
-              Track this shop&apos;s inventory and orders placed to suppliers.
-            </p>
-          </div>
-          <div className="meta-badge">Internal Outlet</div>
-        </div>
+        <h2>{shop.shop_name}</h2>
+        <p><strong>Address:</strong> {shop.shop_address || "N/A"}</p>
+        <p><strong>Contact:</strong> {shop.shop_contact_number || "N/A"}</p>
+        <p><strong>Email:</strong> {shop.shop_email || "N/A"}</p>
+        <p><strong>UEN:</strong> {shop.shop_uen || "N/A"}</p>
+        <hr />
 
-        {/* Shop details – same grid layout */}
-        <div className="info-grid">
-          <div className="info-item">
-            <p className="label">UEN</p>
-            <p className="value">{shop.shop_uen || "N/A"}</p>
-          </div>
-          <div className="info-item">
-            <p className="label">Contact</p>
-            <p className="value">{shop.shop_contact_number || "N/A"}</p>
-          </div>
-          <div className="info-item">
-            <p className="label">Email</p>
-            <p className="value">{shop.shop_email || "N/A"}</p>
-          </div>
-          <div className="info-item info-item-wide">
-            <p className="label">Address</p>
-            <p className="value">{shop.shop_address || "N/A"}</p>
-          </div>
+        <div className="header-row" style={{ display: "flex", justifyContent: "space-between", alignProducts: "center" }}>
+            <h2>Inventory</h2>
+        </div>
+        <div className="shop-grid">
+        {inventory.length > 0 ? (
+            inventory.map((inventory) => <InventoryCard key={inventory.shop_inventory_id} inventory={inventory} onEdit={handleEditInventory} onDelete={handleDeleteInventory}/>)
+        ) : (
+            <p>No inventory records found.</p>
+        )}
         </div>
 
         <hr />
 
-        {/* Main two-column layout like SupplierPage */}
-        <div className="shop-main">
-          {/* Left: Inventory */}
-          <div className="shop-column">
-            <div className="header-row">
-              <h2>Inventory</h2>
-            </div>
+        <div className="header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2>Orders</h2>
+          <button onClick={() => setShowOrderModal(true)} className="add-btn">+ Order Product</button>
+        </div>
 
-            {inventory && inventory.length > 0 ? (
-              <div className="shop-grid">
-                {inventory.map((item) => (
-                  <InventoryCard
-                    key={item.shop_inventory_id}
-                    inventory={item}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p>No inventory records found.</p>
-            )}
-          </div>
-          <hr />
-          {/* Right: Orders */}
-          <div className="shop-column">
-            <div className="header-row">
-              <h2>Orders to suppliers</h2>
-              <button
-                onClick={() => setShowOrderModal(true)}
-                className="add-btn"
+        <div className="orders-section">
+          {orders.length > 0 ? (
+            orders.map((order) => (
+              <div
+                key={order.order_id}
+                style={{
+                  border: "1px solid #ccc",
+                  borderRadius: "8px",
+                  marginBottom: "10px",
+                  overflow: "hidden",
+                }}
               >
-                + Order Product
-              </button>
-            </div>
-            
-            <div className="orders-section">
-              {orders && orders.length > 0 ? (
-                orders.map((order) => {
-                  const itemsForOrder = orderItems[order.order_id] || [];
-                  return (
-                    <div key={order.order_id} className="order-card">
-                      <div
-                        className="order-card-header"
-                        onClick={() => handleToggleOrder(order.order_id)}
-                      >
-                        <div>
-                          <strong>Order #{order.order_id}</strong>
-                          {typeof order.total_price !== "undefined" && (
-                            <> — Total: ${order.total_price}</>
-                          )}
-                          <br />
-                          {order.created_at && (
-                            <small>
-                              Created:{" "}
-                              {new Date(order.created_at).toLocaleString()}
-                            </small>
-                          )}
-                        </div>
-                        <div className="order-card-toggle">
-                          {order.expanded ? "−" : "+"}
-                        </div>
-                      </div>
+                <div
+                  onClick={() => handleToggleOrder(order.order_id)}
+                  style={{
+                    background: "#f7f7f7",
+                    padding: "12px 16px",
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <div>
+                    <strong>Order #{order.order_id}</strong> — Total: ${order.total_price}
+                    <br />
+                    <small>
+                      Created: {new Date(order.created_at).toLocaleString()}
+                    </small>
+                  </div>
+                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>
+                    {order.expanded ? "−" : "+"}
+                  </div>
+                </div>
 
-                      {order.expanded && (
-                        <div className="order-card-body">
-                          {orderItems[order.order_id] ? (
-                            itemsForOrder.length > 0 ? (
-                              <div className="shop-grid">
-                                {itemsForOrder.map((orderItem) => (
-                                  <ShopOrderCard
-                                    key={orderItem.order_item_id}
-                                    orderItem={orderItem}
-                                    onDelivered={() =>
-                                      handleOrderStatus(
-                                        orderItem,
-                                        "delivered"
-                                      )
-                                    }
-                                  />
-                                ))}
-                              </div>
-                            ) : (
-                              <p>No order items found.</p>
-                            )
-                          ) : (
-                            <p>Loading...</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              ) : (
-                <p>No orders yet.</p>
-              )}
-            </div>
-          </div>
+                {order.expanded && (
+                  <div
+                    className="shop-grid"
+                    style={{ padding: "10px 16px", borderTop: "1px solid #ddd" }}
+                  >
+                    {orderItems[order.order_id] ? (
+                      orderItems[order.order_id].length > 0 ? (
+                        orderItems[order.order_id].map((orderItem) => (
+                          <ShopOrderCard
+                            key={orderItem.order_item_id}
+                            order={orderItem}
+                            onDelivered={() =>
+                              handleOrderStatus(orderItem, "delivered")
+                            }
+                          />
+                        ))
+                      ) : (
+                        <p>No order items found.</p>
+                      )
+                    ) : (
+                      <p>Loading...</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <p>No orders yet.</p>
+          )}
+
+          {ordersLoading && <p>Loading more orders...</p>}
         </div>
       </div>
 
-      {showOrderModal && (
-        <AddOrderModal
-          shopId={id}
-          onClose={() => setShowOrderModal(false)}
-          onSuccess={fetchOrders}
-        />
-      )}
+      {showOrderModal && <AddOrderModal shopId={id} onClose={() => setShowOrderModal(false)} onSuccess={() => fetchOrders()} />}
     </div>
   );
 };
 
-export default ShopPage;
+export default ShopPage
