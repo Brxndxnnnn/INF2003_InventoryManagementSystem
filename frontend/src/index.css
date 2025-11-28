@@ -509,3 +509,8 @@ hr{
   font-size: 0.95rem;
   border-radius: 6px;
 }
+
+.order-status-delivered { background-color: #e6f6ea; border-color: #b7e0c0; }
+.order-status-rejected  { background-color: #fde8e8; border-color: #f5b5b5; }
+.order-status-pending   { background-color: #fff7e6; border-color: #ffd48a; }
+.order-status-approved  { background-color: #e8f2ff; border-color: #b3d4ff; }
