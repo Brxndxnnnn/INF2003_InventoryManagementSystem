@@ -9,18 +9,26 @@ import AnalyticsPage from './pages/AnalyticsPage.jsx';
 
 const App = () => {
   return <div>
-    <Routes>
-      {/* Public routes */}
-      <Route path='/' element={<AuthPage/>} />
+  <Routes>
+    <Route path="/" element={<AuthPage />} />
 
-      {/* Protected routes (need login first) */}
-      <Route element={<ProtectedRoute/>}>
-            <Route path='/home' element={<HomePage/>} />
-            <Route path='/shop/:id' element={<ShopPage/>} />
-            <Route path='/supplier/:id' element={<SupplierPage/>} />
-            <Route path='/:id/analytics' element={<AnalyticsPage/>}/>
-      </Route>
-    </Routes>
+    {/* Shop-only routes */}
+    <Route element={<ProtectedRoute allowedRoles={["shop"]} />}>
+        <Route path="/shop/:id" element={<ShopPage />} />
+    </Route>
+
+    {/* Supplier-only routes */}
+    <Route element={<ProtectedRoute allowedRoles={["supplier"]} />}>
+        <Route path="/supplier/:id" element={<SupplierPage />} />
+    </Route>
+
+    {/* Shared pages */}
+    <Route element={<ProtectedRoute allowedRoles={["shop", "supplier"]} />}>
+        <Route path="/home" element={<HomePage />} />
+        <Route path="/:id/analytics" element={<AnalyticsPage />} />
+    </Route>
+  </Routes>
+
   </div>
 }
 

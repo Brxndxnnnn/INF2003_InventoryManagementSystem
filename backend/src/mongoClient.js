@@ -25,6 +25,7 @@ export const connectMongo = async () => {
 
   // Create indexes
   const notifications = db.collection("notifications");
+  const productListCache = db.collection("product_list_cache");
 
   await notifications.createIndex(
     { user_id: 1, read: 1, created_at: -1 },
@@ -34,9 +35,14 @@ export const connectMongo = async () => {
   await notifications.createIndex(
     { created_at: 1 },
     {
-      expireAfterSeconds: 60 * 60 * 24 * 7, // expires after 1 week
-      name: "idx_ttl_createdAt_7d"
+      expireAfterSeconds: 60 * 60 * 24 * 30, // expires after 1 month
+      name: "idx_ttl_createdAt_30d"
     }
+  );
+
+  await productListCache.createIndex(
+    { last_refresh: 1 },
+    { expireAfterSeconds: 900 }  // expires after 15 mins
   );
 
   return db;
