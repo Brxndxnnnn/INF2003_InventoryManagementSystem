@@ -8,6 +8,8 @@ const AddSupplierProductModal = ({ supplierId, onClose, onSuccess }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [formData, setFormData] = useState({
     sku: "",
     unit_price: "",
@@ -25,27 +27,64 @@ const AddSupplierProductModal = ({ supplierId, onClose, onSuccess }) => {
     }
   };
 
-  const fetchProducts = async () => {
-    try {
-      const params = new URLSearchParams();
-      if (searchTerm.trim()) params.append("q", searchTerm.trim());
-      if (selectedCategory) params.append("categoryId", selectedCategory);
+const fetchProducts = async (pageNum = 1) => {
+  try {
+    const params = new URLSearchParams();
+    if (searchTerm.trim()) params.append("q", searchTerm.trim());
+    if (selectedCategory) params.append("categoryId", selectedCategory);
+    params.append("page", pageNum);
 
-      const { data } = await api.get(`/api/product/search?${params.toString()}`);
-      setProducts(data);
-    } catch (err) {
-      console.error("Error fetching products:", err);
-      setProducts([]);
-    }
-  };
+    const { data } = await api.get(`/api/product/search?${params.toString()}`);
+
+    if (pageNum === 1) setProducts(data.data);
+    else setProducts((prev) => [...prev, ...data.data]);
+
+    // Stop loading if fewer results than limit
+    if (data.data.length < 10) setHasMore(false);
+    else setHasMore(true);
+  } catch (err) {
+    console.error("Error fetching products:", err);
+    setProducts([]);
+  }
+};
 
 
+
+  // Handle debounce + reset on filters
   useEffect(() => {
     const delay = setTimeout(() => {
-      if (step === 1) fetchProducts(); fetchCategories();
+      if (step === 1) {
+        setPage(1);
+        fetchProducts(1, true); // reset to first page
+        fetchCategories();
+      }
     }, 400);
     return () => clearTimeout(delay);
   }, [searchTerm, selectedCategory, step]);
+
+  // Infinite scroll event listener
+  useEffect(() => {
+    const container = document.querySelector(".product-scroll-container");
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (!hasMore) return;
+      if (container.scrollTop + container.clientHeight >= container.scrollHeight - 50) {
+        setPage((prev) => prev + 1);
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [hasMore]);
+
+  // Fetch more pages when page increases
+  useEffect(() => {
+    if (step === 1 && page > 1) fetchProducts(page);
+  }, [page, step]);
+
+
+
 
   // Category filter change
   const handleCategoryChange = (e) => {
@@ -109,7 +148,7 @@ const AddSupplierProductModal = ({ supplierId, onClose, onSuccess }) => {
                 ))}
                 </select>
             </div>
-            <div style={{ maxHeight: "300px", overflowY: "auto", margin: "20px 0", border: "1px solid lightgray" }}>
+            <div className="product-scroll-container" style={{ maxHeight: "300px", overflowY: "auto", margin: "20px 0", border: "1px solid lightgray" }}>
               {products.length > 0 ? (
                 products.map((p) => (
                   <div
