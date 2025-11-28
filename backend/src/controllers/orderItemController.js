@@ -1,4 +1,5 @@
 import pool from '../db.js';
+import { createNotification } from "./notificationController.js";
 
 // Get all order items
 export const getAllOrderItems = async (req, res) => {
@@ -46,100 +47,95 @@ export const getOrderItemsByOrderId = async (req, res) => {
     }
 };
 
-// CREATE order item + UPDATE order total --> 1 transaction
-export const createOrderItem = async (req, res) => {
-  const {
-    order_id,
-    supplier_product_id,
-    quantity_ordered,
-    unit_price,
-    estimated_delivery_date,
-    delivery_notes,
-  } = req.body;
-
-  const conn = await pool.getConnection();
-
-  try {
-    await conn.beginTransaction();
-
-    await conn.query(
-      `INSERT INTO order_item (
-        order_id, supplier_product_id, quantity_ordered, unit_price,
-        item_status, estimated_delivery_date, delivery_notes, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, 'pending', ?, ?, NOW(), NOW())`,
-      [
-        order_id,
-        supplier_product_id,
-        quantity_ordered,
-        unit_price,
-        estimated_delivery_date || null,
-        delivery_notes || null,
-      ]
-    );
-
-    // 2) Recalculate order total
-    const [rows] = await conn.query(
-      `SELECT SUM(unit_price * quantity_ordered) AS total_price
-       FROM order_item
-       WHERE order_id = ?`,
-      [order_id]
-    );
-
-    const totalPrice = rows[0].total_price || 0;
-
-    // 3) Update order table
-    await conn.query(
-      `UPDATE \`order\`
-       SET total_price = ?, updated_at = NOW()
-       WHERE order_id = ?`,
-      [totalPrice, order_id]
-    );
-
-    await conn.commit();
-
-    res.status(201).json({
-      message: "Order item created and order total updated successfully.",
-      total_price: totalPrice,
-    });
-  } catch (err) {
-    console.error("Error creating order item or updating total:", err);
-    try {
-      await conn.rollback();
-    } catch (rollbackErr) {
-      console.error("Error rolling back transaction:", rollbackErr);
-    }
-
-    res.status(500).json({ message: err.message });
-  } finally {
-    conn.release();
-  }
-};
-
-
-
 // Edit order item (only PATCH status)
 export const updateOrderItem = async (req, res) => {
-    const { id } = req.params;
-    const { item_status } = req.body;
+  const { id } = req.params;           // order_item_id
+  const { item_status } = req.body;    // approved | rejected | delivered
 
-    try {
-        const [result] = await pool.query(
-            `UPDATE order_item 
-             SET item_status = ?, updated_at = NOW() 
-             WHERE order_item_id = ?`,
-            [item_status, id]
-        );
+  try {
+    // 1) Update order item status
+    const [result] = await pool.query(
+      `UPDATE order_item 
+       SET item_status = ?, updated_at = NOW() 
+       WHERE order_item_id = ?`,
+      [item_status, id]
+    );
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: "Order item not found." });
-        }
-
-        res.status(200).json({ message: "Order item status updated successfully." });
-    } 
-    catch (err) {
-        console.error(`Error updating order item ${id}:`, err);
-        res.status(500).json({ message: err.message });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Order item not found." });
     }
+
+    // 2) Fetch necessary info
+    const [rows] = await pool.query(
+      `SELECT 
+          oi.order_item_id,
+          oi.order_id,
+          oi.supplier_product_id,
+          sp.supplier_id,
+          s.user_id AS supplier_user_id,
+          o.shop_id,
+          sh.user_id AS shop_user_id,
+          sh.shop_name,
+          p.product_name
+        FROM order_item oi
+        JOIN supplier_product sp ON oi.supplier_product_id = sp.supplier_product_id
+        JOIN supplier s ON sp.supplier_id = s.supplier_id
+        JOIN product p ON sp.product_id = p.product_id
+        JOIN \`order\` o ON oi.order_id = o.order_id
+        JOIN shop sh ON o.shop_id = sh.shop_id
+        WHERE oi.order_item_id = ?`,
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(500).json({ message: "Order data missing for notification." });
+    }
+
+    const info = rows[0];
+    const shopUserId = info.shop_user_id;
+    const supplierUserId = info.supplier_user_id;
+
+    // 3) Notification logic
+    if (item_status === "approved" || item_status === "rejected") {
+      // Notify the SHOP
+      const action = item_status === "approved" ? "approved" : "rejected";
+
+      await createNotification({
+        user_id: shopUserId,
+        type: "ORDER_ITEM_STATUS",
+        message: `Your order item (#${info.order_item_id} - ${info.product_name}) from ${info.shop_name} has been ${action}.`,
+        payload: {
+          order_item_id: id,
+          order_id: info.order_id,
+          shop_id: info.shop_id,
+          supplier_id: info.supplier_id,
+          status: item_status
+        }
+      });
+    }
+
+    if (item_status === "delivered") {
+      // Notify the SUPPLIER
+      await createNotification({
+        user_id: supplierUserId,
+        type: "ORDER_ITEM_DELIVERED",
+        message: `Shop ${info.shop_name} has confirmed delivery for item (#${info.order_item_id}).`,
+        payload: {
+          order_item_id: id,
+          order_id: info.order_id,
+          shop_id: info.shop_id,
+          supplier_id: info.supplier_id,
+          status: item_status
+        }
+      });
+    }
+
+    res.status(200).json({ message: "Order item status updated successfully." });
+
+  } catch (err) {
+    console.error(`Error updating order item ${id}:`, err);
+    res.status(500).json({ message: err.message });
+  }
 };
 
 // Delete order item
