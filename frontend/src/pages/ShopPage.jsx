@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router";
 import Navbar from "../components/Navbar";
 import api from "../api.js";
@@ -11,6 +11,9 @@ const ShopPage = () => {
     const [shop, setShop] = useState([]);
     const [inventory, setInventory] = useState([]);
     const [orders, setOrders] = useState([]);
+    const [ordersPage, setOrdersPage] = useState(1);
+    const [ordersHasMore, setOrdersHasMore] = useState(true);
+    const [ordersLoading, setOrdersLoading] = useState(false);
     const [orderItems, setOrderItems] = useState([]);
     const [showOrderModal, setShowOrderModal] = useState(false);
 
@@ -24,18 +27,74 @@ const ShopPage = () => {
         setInventory(data);
     };
 
-    const fetchOrders = async () => {
-        const { data } = await api.get(`/api/order/shop/${id}`);
-        setOrders(data.map((o) => ({ ...o, expanded: false })));
-    }
+    const fetchOrders = async (pageNum = 1) => {
+      try {
+        setOrdersLoading(true);
 
-    // Lazy loading = fetch order items when u expand the fetch orders section
+        const { data } = await api.get(`/api/order/shop/${id}`, {
+          params: { page: pageNum, limit: 5 }, // pick whatever limit you like
+        });
+
+        const rows = Array.isArray(data) ? data : [];
+
+        if (pageNum === 1) {
+          setOrders(rows.map((o) => ({ ...o, expanded: false })));
+        } else {
+          setOrders((prev) => [
+            ...prev,
+            ...rows.map((o) => ({ ...o, expanded: false })),
+          ]);
+        }
+
+        // Like your product lazy load: if less than limit, no more pages
+        if (rows.length < 5) setOrdersHasMore(false);
+        else setOrdersHasMore(true);
+      } catch (err) {
+        console.error("Error fetching orders:", err);
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+
+    // fetch order items when u expand the fetch orders section
     const fetchOrderItems = async (orderId) => {
         const { data } = await api.get(`/api/order-item/${orderId}`);
         setOrderItems((prev) => ({...prev, [orderId]: data,}));
     };
 
-    useEffect(() => {if (id) fetchShop(); fetchOrders(); fetchInventory();}, [id]);
+    useEffect(() => {
+      if (id) {
+        fetchShop();
+        fetchInventory();
+        setOrders([]);
+        setOrdersPage(1);
+        setOrdersHasMore(true);
+        fetchOrders(1);
+      }
+    }, [id]);
+
+
+    useEffect(() => {
+      const handleScroll = () => {
+        if (!ordersHasMore || ordersLoading) return;
+
+        const scrollPosition = window.innerHeight + window.scrollY;
+        const threshold = document.body.offsetHeight - 200; // start loading 200px before bottom
+
+        if (scrollPosition >= threshold) {
+          setOrdersPage((prev) => prev + 1);
+        }
+      };
+
+      window.addEventListener("scroll", handleScroll);
+      return () => window.removeEventListener("scroll", handleScroll);
+    }, [ordersHasMore, ordersLoading]);
+
+    useEffect(() => {
+      if (ordersPage > 1 && id) {
+        fetchOrders(ordersPage);
+      }
+    }, [ordersPage, id]);
 
     const handleToggleOrder = (orderId) => {
     setOrders((prev) =>
@@ -67,6 +126,32 @@ const ShopPage = () => {
     }
     };
 
+    const handleEditInventory = async (inventoryId, updates) => {
+      try {
+        await api.patch(`/api/shop-inventory/${inventoryId}`, updates);
+        await fetchInventory();
+      } catch (err) {
+        const msg =
+          err.response?.data?.message || err.message || "Failed to update inventory";
+        alert(msg);
+      }
+    };
+
+    const handleDeleteInventory = async (inventoryId) => {
+      if (!window.confirm("Are you sure you want to delete this inventory item?")) return;
+
+      try {
+        await api.delete(`/api/shop-inventory/${inventoryId}`);
+        setInventory((prev) =>
+          prev.filter((item) => item.shop_inventory_id !== inventoryId)
+        );
+      } catch (err) {
+        const msg =
+          err.response?.data?.message || err.message || "Failed to delete inventory";
+        alert(msg);
+      }
+    };
+
 
 
   return (
@@ -85,7 +170,7 @@ const ShopPage = () => {
         </div>
         <div className="shop-grid">
         {inventory.length > 0 ? (
-            inventory.map((inventory) => <InventoryCard key={inventory.shop_inventory_id} inventory={inventory}/>)
+            inventory.map((inventory) => <InventoryCard key={inventory.shop_inventory_id} inventory={inventory} onEdit={handleEditInventory} onDelete={handleDeleteInventory}/>)
         ) : (
             <p>No inventory records found.</p>
         )}
@@ -101,7 +186,15 @@ const ShopPage = () => {
         <div className="orders-section">
           {orders.length > 0 ? (
             orders.map((order) => (
-              <div key={order.order_id} style={{ border: "1px solid #ccc", borderRadius: "8px", marginBottom: "10px", overflow: "hidden" }}>
+              <div
+                key={order.order_id}
+                style={{
+                  border: "1px solid #ccc",
+                  borderRadius: "8px",
+                  marginBottom: "10px",
+                  overflow: "hidden",
+                }}
+              >
                 <div
                   onClick={() => handleToggleOrder(order.order_id)}
                   style={{
@@ -110,22 +203,36 @@ const ShopPage = () => {
                     cursor: "pointer",
                     display: "flex",
                     justifyContent: "space-between",
-                    alignItems: "center"
+                    alignItems: "center",
                   }}
                 >
                   <div>
-                    <strong>Order #{order.order_id}</strong> — Total: ${order.total_price}<br />
-                    <small>Created: {new Date(order.created_at).toLocaleString()}</small>
+                    <strong>Order #{order.order_id}</strong> — Total: ${order.total_price}
+                    <br />
+                    <small>
+                      Created: {new Date(order.created_at).toLocaleString()}
+                    </small>
                   </div>
-                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>{order.expanded ? "−" : "+"}</div>
+                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>
+                    {order.expanded ? "−" : "+"}
+                  </div>
                 </div>
 
                 {order.expanded && (
-                  <div className="shop-grid" style={{padding: "10px 16px", borderTop: "1px solid #ddd" }}>
+                  <div
+                    className="shop-grid"
+                    style={{ padding: "10px 16px", borderTop: "1px solid #ddd" }}
+                  >
                     {orderItems[order.order_id] ? (
                       orderItems[order.order_id].length > 0 ? (
                         orderItems[order.order_id].map((orderItem) => (
-                          <ShopOrderCard key={orderItem.order_item_id} order={orderItem} onDelivered={() => handleOrderStatus(orderItem, "delivered")} />
+                          <ShopOrderCard
+                            key={orderItem.order_item_id}
+                            order={orderItem}
+                            onDelivered={() =>
+                              handleOrderStatus(orderItem, "delivered")
+                            }
+                          />
                         ))
                       ) : (
                         <p>No order items found.</p>
@@ -140,6 +247,8 @@ const ShopPage = () => {
           ) : (
             <p>No orders yet.</p>
           )}
+
+          {ordersLoading && <p>Loading more orders...</p>}
         </div>
       </div>
 

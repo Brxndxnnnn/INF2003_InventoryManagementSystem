@@ -12,21 +12,33 @@ export const getAllOrders = async (req, res) => {
     }
 };
 
-// Get order by Shop
+// Get order by Shop with lazy loading
 export const getOrderByShop = async (req, res) => {
-    const { id } = req.params;
-    try {
-        const [rows] = await pool.query("SELECT * FROM `order` WHERE shop_id = ? ORDER BY created_at DESC", [id]);
-        if (rows.length === 0) {
-            return res.status(404).json({ message: "Order not found." });
-        }
-        res.status(200).json(rows);
-    } 
-    catch (err) {
-        console.error(`Error fetching order ${id}:`, err);
-        res.status(500).json({ message: err.message });
-    }
+  const { id } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+
+  const pageNum = Number(page) || 1;
+  const limitNum = Number(limit) || 10;
+  const offset = (pageNum - 1) * limitNum;
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT *
+       FROM \`order\`
+       WHERE shop_id = ?
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`,
+      [id, limitNum, offset]
+    );
+
+    // Just return the rows (like your product search's data.data)
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error(`Error fetching order ${id}:`, err);
+    res.status(500).json({ message: err.message });
+  }
 };
+
 
 // Get order by ID
 export const getOrderById = async (req, res) => {
@@ -81,35 +93,3 @@ export const deleteOrder = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
-
-// Calculate/update order total price
-export const updateOrderTotal = async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    // Get total sum of order_items 
-    const [rows] = await pool.query(
-      `SELECT SUM(unit_price * quantity_ordered) AS total_price 
-       FROM order_item 
-       WHERE order_id = ?`,
-      [id]
-    );
-
-    const totalPrice = rows[0].total_price || 0;
-
-    // Update total_price
-    await pool.query(
-      `UPDATE \`order\` 
-       SET total_price = ?, updated_at = NOW() 
-       WHERE order_id = ?`,
-      [totalPrice, id]
-    );
-
-    res.status(200).json({message: "Order total updated successfully.",});
-  } 
-  catch (err) {
-    console.error(`Error updating total for order ${id}:`, err);
-    res.status(500).json({ message: err.message });
-  }
-};
-

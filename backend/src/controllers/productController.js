@@ -39,10 +39,8 @@ export const getProductsByCategory = async (req, res) => {
 };
 
 export const searchProduct = async (req, res) => {
-  const { q, categoryId } = req.query; 
-  // e.g. /api/product/search?q=coke
-  // or /api/product/search?categoryId=2
-  // or /api/product/search?q=coke&categoryId=2
+  const { q, categoryId, page = 1, limit = 10 } = req.query;
+  const offset = (page - 1) * limit;
 
   try {
     // Base query
@@ -71,14 +69,48 @@ export const searchProduct = async (req, res) => {
       params.push(categoryId);
     }
 
-    // Order by product name alphabetically
+    // Order and pagination
     sql += `
       ORDER BY p.product_name ASC
+      LIMIT ? OFFSET ?
+    `;
+    params.push(Number(limit), Number(offset));
+
+    const [rows] = await pool.query(sql, params);
+
+    // Get total count for pagination metadata
+    let countSql = `
+      SELECT COUNT(*) AS total
+      FROM product p
+      ${q || categoryId ? "LEFT JOIN category c ON p.category_id = c.category_id" : ""}
     `;
 
-    // Execute query
-    const [rows] = await pool.query(sql, params);
-    res.status(200).json(rows);
+    const countParams = [];
+    if (q && q.trim() !== "") {
+      countSql += `
+        WHERE MATCH(p.product_name, p.description)
+        AGAINST (? IN BOOLEAN MODE)
+      `;
+      countParams.push(`${q}*`);
+    }
+    if (categoryId) {
+      countSql += q && q.trim() !== "" ? " AND " : " WHERE ";
+      countSql += `p.category_id = ?`;
+      countParams.push(categoryId);
+    }
+
+    const [countResult] = await pool.query(countSql, countParams);
+    const total = countResult[0].total;
+
+    res.status(200).json({
+      data: rows,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (err) {
     console.error("Error searching products:", err);
     res.status(500).json({ message: err.message });

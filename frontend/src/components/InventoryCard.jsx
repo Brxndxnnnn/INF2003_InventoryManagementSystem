@@ -1,38 +1,119 @@
-import React from "react";
+import React, { useState } from "react";
 
 const InventoryCard = ({ inventory, onEdit, onDelete }) => {
   const id = inventory.shop_inventory_id;
   const product_name = inventory.product_name;
-  const image = inventory.image
+  const image = inventory.image;
   const description = inventory.description;
   const current_stock = inventory.current_stock;
-  const reorder_level = inventory.reorder_level;
-  const max_stock_level = inventory.max_stock_level;
   const created = new Date(inventory.created_at).toLocaleString();
   const updated = new Date(inventory.updated_at).toLocaleString();
-  
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    reorder_level: inventory.reorder_level,
+    max_stock_level: inventory.max_stock_level,
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: Number(value),
+    }));
+  };
+
+  const handleSave = () => {
+    if (onEdit) {
+      onEdit(id, formData);
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setFormData({
+      reorder_level: inventory.reorder_level,
+      max_stock_level: inventory.max_stock_level,
+    });
+    setIsEditing(false);
+  };
 
   return (
     <div className="shop-card">
       <div style={{ display: "flex", justifyContent: "center" }}>
-        <img src={image} style={{ width: "50%", height: "50%", objectFit: "cover" }} />
+        <img
+          src={image}
+          style={{ width: "50%", height: "50%", objectFit: "cover" }}
+        />
       </div>
+
       <h3 className="shop-name">{product_name}</h3>
       <p>{description}</p>
-      <p><strong>Current Stock Quantity:</strong> {current_stock}</p>
-      <p><strong>Reorder Level:</strong> {reorder_level}</p>
-      <p><strong>Max Stock:</strong> {max_stock_level}</p>
 
-      <p><strong>Created At:</strong> {created}</p>
-      <p><strong>Last Updated:</strong> {updated}</p>
+      <p>
+        <strong>Current Stock Quantity:</strong> {current_stock}
+      </p>
+
+      <p>
+        <strong>Reorder Level:</strong>{" "}
+        {isEditing ? (
+          <input
+            type="number"
+            name="reorder_level"
+            value={formData.reorder_level}
+            onChange={handleChange}
+            style={{ width: "80px" }}
+          />
+        ) : (
+          inventory.reorder_level
+        )}
+      </p>
+
+      <p>
+        <strong>Max Stock:</strong>{" "}
+        {isEditing ? (
+          <input
+            type="number"
+            name="max_stock_level"
+            value={formData.max_stock_level}
+            onChange={handleChange}
+            style={{ width: "80px" }}
+          />
+        ) : (
+          inventory.max_stock_level
+        )}
+      </p>
+
+      <p>
+        <strong>Created At:</strong> {created}
+      </p>
+      <p>
+        <strong>Last Updated:</strong> {updated}
+      </p>
 
       <div className="card-actions">
-        {/* <button className="submit-btn" onClick={() => onEdit(inventory)}>
-          Edit
-        </button>
-        <button className="cancel-btn" onClick={() => onDelete(id)}>
-          Delete
-        </button> */}
+        {isEditing ? (
+          <>
+            <button className="submit-btn" onClick={handleSave}>
+              Save
+            </button>
+            <button className="cancel-btn" onClick={handleCancel}>
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="submit-btn" onClick={() => setIsEditing(true)}>
+              Edit
+            </button>
+            <button
+              className="cancel-btn"
+              onClick={() => onDelete && onDelete(id)}
+            >
+              Delete
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

@@ -46,49 +46,76 @@ export const getOrderItemsByOrderId = async (req, res) => {
     }
 };
 
-// Create a new order item
+// CREATE order item + UPDATE order total --> 1 transaction
 export const createOrderItem = async (req, res) => {
-    const { order_id, supplier_product_id, quantity_ordered, unit_price, estimated_delivery_date, delivery_notes } = req.body;
+  const {
+    order_id,
+    supplier_product_id,
+    quantity_ordered,
+    unit_price,
+    estimated_delivery_date,
+    delivery_notes,
+  } = req.body;
 
-    // Backend validation
-    if (!order_id || !supplier_product_id || !quantity_ordered || !unit_price) {
-        return res.status(400).json({ message: "Missing required fields" });
-    }
+  const conn = await pool.getConnection();
 
+  try {
+    await conn.beginTransaction();
+
+    await conn.query(
+      `INSERT INTO order_item (
+        order_id, supplier_product_id, quantity_ordered, unit_price,
+        item_status, estimated_delivery_date, delivery_notes, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, 'pending', ?, ?, NOW(), NOW())`,
+      [
+        order_id,
+        supplier_product_id,
+        quantity_ordered,
+        unit_price,
+        estimated_delivery_date || null,
+        delivery_notes || null,
+      ]
+    );
+
+    // 2) Recalculate order total
+    const [rows] = await conn.query(
+      `SELECT SUM(unit_price * quantity_ordered) AS total_price
+       FROM order_item
+       WHERE order_id = ?`,
+      [order_id]
+    );
+
+    const totalPrice = rows[0].total_price || 0;
+
+    // 3) Update order table
+    await conn.query(
+      `UPDATE \`order\`
+       SET total_price = ?, updated_at = NOW()
+       WHERE order_id = ?`,
+      [totalPrice, order_id]
+    );
+
+    await conn.commit();
+
+    res.status(201).json({
+      message: "Order item created and order total updated successfully.",
+      total_price: totalPrice,
+    });
+  } catch (err) {
+    console.error("Error creating order item or updating total:", err);
     try {
-        // Check MOQ (Minimum Order Quantity)
-        const [supplierProduct] = await pool.query(
-            "SELECT min_order_quantity FROM supplier_product WHERE supplier_product_id = ?",
-            [supplier_product_id]
-        );
-
-        if (supplierProduct.length === 0) {
-            return res.status(404).json({ message: "Supplier product not found" });
-        }
-
-        const moq = supplierProduct[0].min_order_quantity;
-        
-        if (quantity_ordered < moq) {
-            return res.status(400).json({ 
-                message: `Order quantity (${quantity_ordered}) is below the minimum order quantity (${moq})` 
-            });
-        }
-
-        await pool.query(
-            `INSERT INTO order_item (
-                order_id, supplier_product_id, quantity_ordered, unit_price,
-                item_status, estimated_delivery_date, delivery_notes, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, 'pending', ?, ?, NOW(), NOW())`,
-            [order_id, supplier_product_id, quantity_ordered, unit_price, estimated_delivery_date || null, delivery_notes || null]
-        );
-
-        res.status(201).json({ message: "Order item created successfully." });
-    } 
-    catch (err) {
-        console.error("Error creating order item:", err);
-        res.status(500).json({ message: err.message });
+      await conn.rollback();
+    } catch (rollbackErr) {
+      console.error("Error rolling back transaction:", rollbackErr);
     }
+
+    res.status(500).json({ message: err.message });
+  } finally {
+    conn.release();
+  }
 };
+
+
 
 // Edit order item (only PATCH status)
 export const updateOrderItem = async (req, res) => {

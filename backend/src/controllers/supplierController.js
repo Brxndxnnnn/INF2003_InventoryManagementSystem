@@ -133,14 +133,18 @@ export const deleteSupplier = async (req, res) => {
 // LEFT JOIN supplier_product sp 
 //     ON s.supplier_id = sp.supplier_id
 // //WHERE MATCH(s.supplier_name, s.supplier_email, s.supplier_uen, s.supplier_contact_number)
-// //      AGAINST ('Hak <-- SEARCH QUERY*' IN BOOLEAN MODE)
+// //      AGAINST ('Hakim etc <-- SEARCH QUERY*' IN BOOLEAN MODE)
 // GROUP BY s.supplier_id
 // HAVING product_count > 0
 // ORDER BY s.supplier_name ASC;
 export const searchSupplier = async (req, res) => {
-  const { q, hideEmpty } = req.query; // e.g. /api/supplier/search?q=BATCHA&hideEmpty=true
+  const { q, hideEmpty, page = 1, limit = 10 } = req.query;
+
+  const pageNum = Number(page) || 1;
+  const limitNum = Number(limit) || 10;
+  const offset = (pageNum - 1) * limitNum;
+
   try {
-    // Base query
     let sql = `
       SELECT s.*, COUNT(sp.supplier_product_id) AS product_count
       FROM supplier s
@@ -148,7 +152,7 @@ export const searchSupplier = async (req, res) => {
     `;
     const params = [];
 
-    // WHERE (optional fulltext search)
+    // fulltext WHERE
     if (q && q.trim() !== "") {
       sql += `
         WHERE MATCH(s.supplier_name, s.supplier_email, s.supplier_uen, s.supplier_contact_number)
@@ -157,12 +161,15 @@ export const searchSupplier = async (req, res) => {
       params.push(`${q}*`);
     }
 
-    // Group and optionally filter suppliers with zero products
+    // group + optional having + order
     sql += `
       GROUP BY s.supplier_id
       ${hideEmpty === "true" ? "HAVING product_count > 0" : ""}
       ORDER BY s.supplier_name ASC
+      LIMIT ? OFFSET ?
     `;
+
+    params.push(limitNum, offset);
 
     const [rows] = await pool.query(sql, params);
     res.status(200).json(rows);
@@ -171,3 +178,5 @@ export const searchSupplier = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+
