@@ -343,3 +343,92 @@ hr{
   transition: background-color 0.2s ease;
 }
 
+/* Role-tinted container backgrounds */
+.home-page.shop-home .container2 { background-color: #fff7ec; }
+.home-page.supplier-home .container2 { background-color: #ecf6ff; }
+
+/* Hero section & badge */
+.home-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+.role-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  margin-bottom: 0.4rem;
+}
+.shop-home .role-badge { background: #ffe1bf; color: #a65300; }
+.supplier-home .role-badge { background: #cfe5ff; color: #004a99; }
+.hero-icon { font-size: 2.5rem; }
+.subtitle { margin-top: 0.25rem; color: #555; font-size: 0.9rem; }
+
+/* Header row */
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.header-row h2 { margin: 0; }
+.home-page .header-row .add-btn {
+  padding: 0.55rem 1.3rem;
+  font-size: 0.95rem;
+  border-radius: 6px;
+}
+
+/* Supplier list layout */
+.supplier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Empty state card */
+.empty-state-card {
+  margin-top: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 10px;
+  background: #ffffffcc;
+  border: 1px dashed #ccc;
+}
+.empty-state-card h3 { margin: 0 0 0.5rem 0; }
+.empty-state-card ul { margin: 0.5rem 0 1rem 1.1rem; padding-left: 0; }
+
+.primary-empty-btn {
+  margin-top: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+.shop-home .primary-empty-btn { background: #ff9c47; color: #fff; }
+.supplier-home .primary-empty-btn { background: #1f7fd6; color: #fff; }
+
+
+/* Unified responsive grid for both roles */
+/* Force 2-column layout on desktop */
+.shop-grid,
+.supplier-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);   /* <--- HARD 2 col */
+  gap: 1.5rem;
+  padding: 1.5rem 0;
+}
+
+/* Mobile: 1 column */
+@media (max-width: 768px) {
+  .shop-grid,
+  .supplier-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+

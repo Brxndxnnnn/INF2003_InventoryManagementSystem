@@ -15,7 +15,7 @@ const ShopCard = ({ shop, role }) => {
       <p><strong>Contact:</strong> {contact || "N/A"}</p>
       <p><strong>Email:</strong> {email || "N/A"}</p>
       <p><strong>UEN:</strong> {uen || "N/A"}</p>
-      {id}
+      
     </div>
   );
 };
