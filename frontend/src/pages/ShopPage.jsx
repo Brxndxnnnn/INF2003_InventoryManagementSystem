@@ -17,15 +17,15 @@ const ShopPage = () => {
     const [orderItems, setOrderItems] = useState([]);
     const [showOrderModal, setShowOrderModal] = useState(false);
 
-    const fetchShop = async () => {
-        const { data } = await api.get(`/api/shop/${id}`);
-        setShop(data);
-    };
+  const fetchShop = async () => {
+    const { data } = await api.get(`/api/shop/${id}`);
+    setShop(data);
+  };
 
-    const fetchInventory = async () => {
-        const { data } = await api.get(`/api/shop-inventory/shop/${id}`);
-        setInventory(data);
-    };
+  const fetchInventory = async () => {
+    const { data } = await api.get(`/api/shop-inventory/shop/${id}`);
+    setInventory(data);
+  };
 
     const fetchOrders = async (pageNum = 1) => {
       try {
@@ -96,31 +96,34 @@ const ShopPage = () => {
       }
     }, [ordersPage, id]);
 
-    const handleToggleOrder = (orderId) => {
+  const handleToggleOrder = (orderId) => {
+    const targetId = Number(orderId);
+
     setOrders((prev) =>
-        prev.map((o) =>
-        o.order_id === orderId ? { ...o, expanded: !o.expanded } : o
-        )
+      prev.map((o) =>
+        Number(o.order_id) === targetId
+          ? { ...o, expanded: !o.expanded }
+          : o
+      )
     );
 
-    if (!orderItems[orderId]) {
-        fetchOrderItems(orderId);
+    if (!orderItems[targetId]) {
+      fetchOrderItems(targetId);
     }
-    };
+  };
 
-    const handleOrderStatus = async (orderItem, status) => {
+  const handleOrderStatus = async (orderItem, status) => {
     try {
-        const endpoint = `/api/order-item/${orderItem.order_item_id}`;
-        const payload = { item_status: status };
+      const endpoint = `/api/order-item/${orderItem.order_item_id}`;
+      const payload = { item_status: status };
 
-        const { data } = await api.patch(endpoint, payload);
+      const { data } = await api.patch(endpoint, payload);
 
-        alert(data.message);
-        fetchInventory();
-        fetchOrders();
-        fetchOrderItems(orderItem.order_id)
-        fetchShop();
-
+      alert(data.message);
+      fetchInventory();
+      fetchOrders();
+      fetchOrderItems(orderItem.order_id);
+      fetchShop();
     } catch (err) {
         alert(orderItem.order_id);
     }
@@ -152,35 +155,61 @@ const ShopPage = () => {
       }
     };
 
-
-
   return (
     <div>
       <Navbar />
       <div className="container2">
         <h2>{shop.shop_name}</h2>
-        <p><strong>Address:</strong> {shop.shop_address || "N/A"}</p>
-        <p><strong>Contact:</strong> {shop.shop_contact_number || "N/A"}</p>
-        <p><strong>Email:</strong> {shop.shop_email || "N/A"}</p>
-        <p><strong>UEN:</strong> {shop.shop_uen || "N/A"}</p>
+        <p>
+          <strong>Address:</strong> {shop.shop_address || "N/A"}
+        </p>
+        <p>
+          <strong>Contact:</strong> {shop.shop_contact_number || "N/A"}
+        </p>
+        <p>
+          <strong>Email:</strong> {shop.shop_email || "N/A"}
+        </p>
+        <p>
+          <strong>UEN:</strong> {shop.shop_uen || "N/A"}
+        </p>
         <hr />
 
-        <div className="header-row" style={{ display: "flex", justifyContent: "space-between", alignProducts: "center" }}>
-            <h2>Inventory</h2>
+        <div
+          className="header-row"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignProducts: "center",
+          }}
+        >
+          <h2>Inventory</h2>
         </div>
+
         <div className="shop-grid">
         {inventory.length > 0 ? (
             inventory.map((inventory) => <InventoryCard key={inventory.shop_inventory_id} inventory={inventory} onEdit={handleEditInventory} onDelete={handleDeleteInventory}/>)
         ) : (
             <p>No inventory records found.</p>
-        )}
+          )}
         </div>
 
         <hr />
 
-        <div className="header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          className="header-row"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <h2>Orders</h2>
-          <button onClick={() => setShowOrderModal(true)} className="add-btn">+ Order Product</button>
+          <button
+            onClick={() => setShowOrderModal(true)}
+            className="add-btn"
+          >
+            + Order Product
+          </button>
         </div>
 
         <div className="orders-section">
@@ -252,9 +281,15 @@ const ShopPage = () => {
         </div>
       </div>
 
-      {showOrderModal && <AddOrderModal shopId={id} onClose={() => setShowOrderModal(false)} onSuccess={() => fetchOrders()} />}
+      {showOrderModal && (
+        <AddOrderModal
+          shopId={id}
+          onClose={() => setShowOrderModal(false)}
+          onSuccess={() => fetchOrders()}
+        />
+      )}
     </div>
   );
 };
 
-export default ShopPage
+export default ShopPage;
