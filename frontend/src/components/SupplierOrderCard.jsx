@@ -10,8 +10,13 @@ const SupplierOrderCard = ({ order, onAccept, onReject}) => {
   const shop_name = order.shop_name;
   const created = new Date(order.created_at).toLocaleString();
 
+  const normalizedStatus = item_status.toLowerCase();   // "pending", "delivered", etc.
+  const cardClassName = `shop-card ${
+    normalizedStatus ? `order-status-${normalizedStatus}` : ""
+  }`;
+
   return (
-    <div className="shop-card">
+    <div className={cardClassName}>
       <h3 className="shop-name">Order Item #{order_item_id}</h3>
       <p><strong>Product Name:</strong> {product_name}</p>
       <p><strong>Quantity Ordered:</strong> {quantity_ordered} @ ${unit_price}</p>
