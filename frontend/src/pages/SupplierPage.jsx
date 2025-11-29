@@ -94,7 +94,7 @@ const SupplierPage = () => {
             </div>
             <div className="shop-grid">
             {orders.length > 0 ? (
-                orders.map((order) => <SupplierOrderCard key={order.order_id} order={order} onAccept={() => handleOrderStatus(order, "approved")} onReject={() => handleOrderStatus(order, "rejected")}/>)
+                orders.map((order) => <SupplierOrderCard key={order.order_item_id} order={order} onAccept={() => handleOrderStatus(order, "approved")} onReject={() => handleOrderStatus(order, "rejected")}/>)
             ) : (
                 <p>No orders found.</p>
             )}

@@ -7,6 +7,8 @@ const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [cart, setCart] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [supplierPage, setSupplierPage] = useState(1);
+  const [supplierHasMore, setSupplierHasMore] = useState(true);
   const [products, setProducts] = useState([]);
   const [hideEmpty, setHideEmpty] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -15,26 +17,45 @@ const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
     delivery_notes: "",
   });
 
-  const fetchSuppliers = async (query = "", hide = hideEmpty) => {
+  const fetchSuppliers = async (query = "", hide = hideEmpty, pageNum = 1) => {
     try {
-      const endpoint = query.trim()
-        ? `/api/supplier/search?q=${encodeURIComponent(query)}&hideEmpty=${hide}`
-        : `/api/supplier/search?hideEmpty=${hide}`;
-      const { data } = await api.get(endpoint);
-      setSuppliers(Array.isArray(data) ? data : []);
+      const params = new URLSearchParams();
+      if (query.trim()) params.append("q", query.trim());
+      params.append("hideEmpty", hide ? "true" : "false");
+      params.append("page", pageNum);
+      params.append("limit", 10); // or any page size you like
+
+      const { data } = await api.get(`/api/supplier/search?${params.toString()}`);
+      const rows = Array.isArray(data) ? data : [];
+
+      if (pageNum === 1) {
+        setSuppliers(rows);
+      } else {
+        setSuppliers((prev) => [...prev, ...rows]);
+      }
+
+      // stop when fewer than limit
+      if (rows.length < 10) setSupplierHasMore(false);
+      else setSupplierHasMore(true);
     } catch (err) {
       console.error(err);
       setSuppliers([]);
     }
   };
 
+
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
-        fetchSuppliers(searchTerm);
-    }, 400); // debounce to prevent spam call api when i spam type words, wait 400ms then calls the api
+      if (step === 1) {
+        setSupplierPage(1);
+        setSupplierHasMore(true);
+        fetchSuppliers(searchTerm, hideEmpty, 1);
+      }
+    }, 400);
 
     return () => clearTimeout(delayDebounce);
-    }, [searchTerm]);
+  }, [searchTerm, hideEmpty, step]);
+
 
   const fetchProductsBySupplier = async (id) => {
     const { data } = await api.get(`/api/supplier-product/supplier/${id}`);
@@ -48,78 +69,54 @@ const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
   };
 
 
-  // Create Order
-  const placeOrder = async (cart) => {
-    let orderId = null;
-    try{
-        orderId = await createOrder(); // Create order 
-        for(const item of cart){ // Create individual order items
-        await createOrderItem(orderId, item);
-        }
-        await updateOrderTotalPrice(orderId); // Update order price
-        alert("Order placed");
-        onSuccess();
-        onClose();
-    }
-    catch (err){
-        // If order was created but items failed, delete the order
-        if (orderId) {
-          try {
-            await api.delete(`/api/order/${orderId}`);
-          } catch (deleteErr) {
-            console.error("Error cleaning up order:", deleteErr);
-          }
-        }
-        
-        // Display proper error message
-        const errorMessage = err.response?.data?.message || err.message || "Failed to place order";
-        alert(errorMessage);
+  const placeOrder = async () => {
+    try {
+      const payload = {
+        shop_id: shopId,
+        items: cart.map(item => ({
+          supplier_product_id: item.supplier_product_id,
+          quantity_ordered: item.quantity,
+          unit_price: item.unit_price,
+          delivery_notes: item.delivery_notes || null,
+        }))
+      };
+
+      const { data } = await api.post("/api/order/full", payload);
+
+      alert("Order placed");
+      onSuccess();
+      onClose();
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || "Failed to place order";
+      alert(errorMessage);
     }
   };
 
-  const createOrder = async () =>{
-    try{
-        const endpoint = "/api/order"
-        const payload = {shop_id: shopId}
-        const { data } = await api.post(endpoint, payload);
-        return data.order_id
-    }
-    catch (err){
-        const errorMessage = err.response?.data?.message || err.message || "Failed to create order";
-        throw new Error(errorMessage);
-    }
-  }
+  useEffect(() => {
+    const container = document.querySelector(".supplier-scroll-container");
+    if (!container) return;
 
-  const createOrderItem = async (orderId, cartItem) =>{
-    try{
-        const endpoint = "/api/order-item"
-        const payload =
-        {
-            order_id: orderId,
-            supplier_product_id: cartItem.supplier_product_id,
-            quantity_ordered: cartItem.quantity,
-            unit_price: cartItem.unit_price,
-            delivery_notes: cartItem.delivery_notes || null,
-        }
-        console.log(payload)
-        await api.post(endpoint, payload);
-    }
-    catch (err){
-        const errorMessage = err.response?.data?.message || err.message || "Failed to create order item";
-        throw new Error(errorMessage);
-    }
-  }
+    const handleScroll = () => {
+      if (!supplierHasMore) return;
+      if (
+        container.scrollTop + container.clientHeight >=
+        container.scrollHeight - 50
+      ) {
+        setSupplierPage((prev) => prev + 1);
+      }
+    };
 
-  const updateOrderTotalPrice = async (orderId) =>{
-    try{
-        const endpoint = `/api/order/${orderId}`
-        await api.patch(endpoint);
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [supplierHasMore]);
+
+  useEffect(() => {
+    if (step === 1 && supplierPage > 1) {
+      fetchSuppliers(searchTerm, hideEmpty, supplierPage);
     }
-    catch (err){
-        const errorMessage = err.response?.data?.message || err.message || "Failed to update order total";
-        throw new Error(errorMessage);
-    }
-  }
+  }, [supplierPage, step, searchTerm, hideEmpty]);
+
+
 
   return (
     <div className="modal-overlay">
@@ -132,12 +129,27 @@ const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
             <input type="text" name="search_supplier"  placeholder="Search for suppliers" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
               <label htmlFor="hide_supplier" style={{ whiteSpace: "nowrap" }}> Hide suppliers with no available products: </label>
-              <input type="checkbox" name="hide_supplier" style={{ width:"16px", cursor: "pointer", margin:"0px" }} checked={hideEmpty} onChange={(e) => {setHideEmpty(e.target.checked); fetchSuppliers(searchTerm, e.target.checked)}}></input>
+              <input
+                type="checkbox"
+                name="hide_supplier"
+                style={{ width: "16px", cursor: "pointer", margin: "0px" }}
+                checked={hideEmpty}
+                onChange={(e) => setHideEmpty(e.target.checked)}
+              />
+
             </div>
             </form>
-            <div
-              style={{ maxHeight: "300px", overflowY: "auto", marginBottom: "25px", borderColor:"lightgrey", borderWidth:"1px",   borderStyle: "solid",  }}
-            >
+              <div
+                className="supplier-scroll-container"
+                style={{
+                  maxHeight: "300px",
+                  overflowY: "auto",
+                  marginBottom: "25px",
+                  borderColor: "lightgrey",
+                  borderWidth: "1px",
+                  borderStyle: "solid",
+                }}
+              >
               {suppliers.map((s) => (
                 <div
                   key={s.supplier_id}
@@ -247,7 +259,6 @@ const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
                 placeholder="Quantity"
                 value={formData.quantity}
                 onChange={handleFormChange}
-                required
             />
             <input
                 type="text"
@@ -299,7 +310,7 @@ const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
             </button>
             <button
                 className="submit-btn"
-                onClick={() => {placeOrder(cart);}}
+                onClick={placeOrder}
                 disabled={cart.length === 0}
             >
                 Submit Order
