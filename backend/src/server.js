@@ -21,7 +21,7 @@ const app = express()
 // Enable CORS (frontend-backend communication since they both have different ports)
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", /\.vercel\.app$/],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   })
