@@ -1,5 +1,5 @@
 # INF2003 Unified Supplier Ordering and Inventory Management Platform (USOIMP) 4 Team 66
-This user manual explains how to run the USOIMP under three different environments:
+This user manual explains how to run the USOIMP under two different environments:
 - **Option A** - Hosted Online (no setup needed)
 - **Option B** - Hybrid (Local frontend + backend using AWS RDS and MongoDB Atlas)
 
