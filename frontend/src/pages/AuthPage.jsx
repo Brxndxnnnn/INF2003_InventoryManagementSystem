@@ -23,6 +23,7 @@ const AuthPage = () => {
 
       // Login success
       if (mode === "login") {
+        const token = data.token;
         const userData = {
           user_id: data.user.user_id,
           email: data.user.email,
@@ -30,6 +31,7 @@ const AuthPage = () => {
           isLoggedIn: true,
         };
         sessionStorage.setItem("user", JSON.stringify(userData));
+        sessionStorage.setItem("token", token);
         navigate("/home");
       }
       // Registration success
