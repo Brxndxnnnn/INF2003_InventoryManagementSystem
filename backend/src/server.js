@@ -11,6 +11,8 @@ import supplierProductRoute from './routes/supplierProductRoute.js';
 import orderRoute from './routes/orderRoute.js';
 import orderItemRoute from './routes/orderItemRoute.js';
 import analyticsRoute from './routes/analyticsRoute.js';
+import notificationRoute from './routes/notificationRoute.js';
+import { connectMongo } from "./mongoClient.js";
 
 const app = express()
 
@@ -38,7 +40,18 @@ app.use("/api/supplier-product", supplierProductRoute)
 app.use("/api/order", orderRoute)
 app.use("/api/order-item", orderItemRoute)
 app.use("/api/analytics", analyticsRoute)
+app.use("/api/notification", notificationRoute)
 
-app.listen(process.env.CLIENT_PORT, () =>
-  console.log(`Server running on http://localhost:${process.env.CLIENT_PORT}`)
-);
+const PORT = process.env.CLIENT_PORT || 5001;
+
+const start = async () => {
+  // 1) connect to Mongo
+  await connectMongo();
+
+  // 2) start Express
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+};
+
+start();

@@ -69,66 +69,28 @@ const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
   };
 
 
-  // Create Order
-  const placeOrder = async (cart) => {
-    let orderId = null;
-    try{
-        orderId = await createOrder(); // Create order 
-        for(const item of cart){ // Create individual order items
-        await createOrderItem(orderId, item);
-        }
-        alert("Order placed");
-        onSuccess();
-        onClose();
-    }
-    catch (err){
-        // If order was created but items failed, delete the order
-        if (orderId) {
-          try {
-            await api.delete(`/api/order/${orderId}`);
-          } catch (deleteErr) {
-            console.error("Error cleaning up order:", deleteErr);
-          }
-        }
-        
-        // Display proper error message
-        const errorMessage = err.response?.data?.message || err.message || "Failed to place order";
-        alert(errorMessage);
+  const placeOrder = async () => {
+    try {
+      const payload = {
+        shop_id: shopId,
+        items: cart.map(item => ({
+          supplier_product_id: item.supplier_product_id,
+          quantity_ordered: item.quantity,
+          unit_price: item.unit_price,
+          delivery_notes: item.delivery_notes || null,
+        }))
+      };
+
+      const { data } = await api.post("/api/order/full", payload);
+
+      alert("Order placed");
+      onSuccess();
+      onClose();
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || "Failed to place order";
+      alert(errorMessage);
     }
   };
-
-  const createOrder = async () =>{
-    try{
-        const endpoint = "/api/order"
-        const payload = {shop_id: shopId}
-        const { data } = await api.post(endpoint, payload);
-        return data.order_id
-    }
-    catch (err){
-        const errorMessage = err.response?.data?.message || err.message || "Failed to create order";
-        throw new Error(errorMessage);
-    }
-  }
-
-  const createOrderItem = async (orderId, cartItem) =>{
-    try{
-        const endpoint = "/api/order-item"
-        const payload =
-        {
-            order_id: orderId,
-            supplier_product_id: cartItem.supplier_product_id,
-            quantity_ordered: cartItem.quantity,
-            unit_price: cartItem.unit_price,
-            delivery_notes: cartItem.delivery_notes || null,
-        }
-        console.log(payload)
-        await api.post(endpoint, payload);
-    }
-    catch (err){
-        const errorMessage = err.response?.data?.message || err.message || "Failed to create order item";
-        throw new Error(errorMessage);
-    }
-  }
 
   useEffect(() => {
     const container = document.querySelector(".supplier-scroll-container");
@@ -348,7 +310,7 @@ const AddOrderModal = ({ shopId, onClose, onSuccess }) => {
             </button>
             <button
                 className="submit-btn"
-                onClick={() => {placeOrder(cart);}}
+                onClick={placeOrder}
                 disabled={cart.length === 0}
             >
                 Submit Order

@@ -1,4 +1,5 @@
 import pool from '../db.js';
+import { getDb } from "../mongoClient.js";
 
 // Get all products
 export const getAllProducts = async (req, res) => {
@@ -42,8 +43,24 @@ export const searchProduct = async (req, res) => {
   const { q, categoryId, page = 1, limit = 10 } = req.query;
   const offset = (page - 1) * limit;
 
+  const cacheKey = `q=${q || ""}&category=${categoryId || ""}&page=${page}&limit=${limit}`;
+
   try {
-    // Base query
+    // check mongodb cache
+    const db = getDb();
+    const cacheCol = db.collection("product_list_cache");
+
+    const cached = await cacheCol.findOne({ key: cacheKey });
+
+    if (cached) {
+      return res.status(200).json({
+        data: cached.data,
+        pagination: cached.pagination,
+        cached: true
+      });
+    }
+
+    // run mysql search logic
     let sql = `
       SELECT 
         p.*,
@@ -51,6 +68,7 @@ export const searchProduct = async (req, res) => {
       FROM product p
       LEFT JOIN category c ON p.category_id = c.category_id
     `;
+
     const params = [];
 
     // WHERE (optional fulltext in BOOLEAN MODE)
@@ -78,14 +96,14 @@ export const searchProduct = async (req, res) => {
 
     const [rows] = await pool.query(sql, params);
 
-    // Get total count for pagination metadata
+    // Get total count
     let countSql = `
       SELECT COUNT(*) AS total
       FROM product p
       ${q || categoryId ? "LEFT JOIN category c ON p.category_id = c.category_id" : ""}
     `;
-
     const countParams = [];
+
     if (q && q.trim() !== "") {
       countSql += `
         WHERE MATCH(p.product_name, p.description)
@@ -102,17 +120,36 @@ export const searchProduct = async (req, res) => {
     const [countResult] = await pool.query(countSql, countParams);
     const total = countResult[0].total;
 
-    res.status(200).json({
+    const responsePayload = {
       data: rows,
       pagination: {
         total,
         page: Number(page),
         limit: Number(limit),
         totalPages: Math.ceil(total / limit),
+      }
+    };
+
+    // save result to cache
+    await cacheCol.updateOne(
+      { key: cacheKey },
+      {
+        $set: {
+          key: cacheKey,
+          data: rows,
+          pagination: responsePayload.pagination,
+          last_refresh: new Date()
+        }
       },
-    });
+      { upsert: true }
+    );
+
+    // return mysql result
+    res.status(200).json({ ...responsePayload, cached: false });
+
   } catch (err) {
     console.error("Error searching products:", err);
     res.status(500).json({ message: err.message });
   }
 };
+

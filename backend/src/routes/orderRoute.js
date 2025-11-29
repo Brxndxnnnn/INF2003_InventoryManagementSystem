@@ -3,7 +3,7 @@ import {
   getAllOrders,
   getOrderByShop,
   getOrderById,
-  createOrder,
+  createFullOrder,
   deleteOrder,
 } from "../controllers/orderController.js";
 
@@ -12,7 +12,7 @@ const router = express.Router();
 router.get("/", getAllOrders);
 router.get("/shop/:id", getOrderByShop);
 router.get("/:id", getOrderById);
-router.post("/", createOrder);
+router.post("/full", createFullOrder);
 router.delete("/:id", deleteOrder);
 
 export default router;
