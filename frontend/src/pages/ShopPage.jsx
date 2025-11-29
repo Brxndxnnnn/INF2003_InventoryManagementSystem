@@ -121,12 +121,20 @@ const ShopPage = () => {
 
       alert(data.message);
       fetchInventory();
-      fetchOrders();
       fetchOrderItems(orderItem.order_id);
       fetchShop();
+
+      await reloadOrders();
     } catch (err) {
         alert(orderItem.order_id);
     }
+  };
+
+    const reloadOrders = async () => {
+      setOrders([]);
+      setOrdersPage(1);
+      setOrdersHasMore(true);
+      await fetchOrders(1);
     };
 
     const handleEditInventory = async (inventoryId, updates) => {
@@ -154,6 +162,18 @@ const ShopPage = () => {
         alert(msg);
       }
     };
+
+  const deleteOrder = async (orderId) => {
+    if (!window.confirm("Are you sure you want to delete this order?")) return;
+    try {
+      await api.delete(`/api/order/${orderId}`);
+      setOrders(prev => prev.filter(o => o.order_id !== orderId));
+    } catch (err) {
+        const msg =
+          err.response?.data?.message || err.message || "Failed to delete order";
+        alert(msg);
+    }
+  };
 
   return (
     <div>
@@ -264,7 +284,16 @@ const ShopPage = () => {
                           />
                         ))
                       ) : (
-                        <p>No order items found.</p>
+                        <div style={{ display:"flex", alignItems:"center", width:"100%" }}>
+                          <p>No order items found....</p>
+                          <button
+                            className="cancel-btn"
+                            onClick={() => deleteOrder(order.order_id)}
+                            style={{ padding:"4px 8px", fontSize:"12px" }}
+                          >
+                            Delete Order
+                          </button>
+                        </div>
                       )
                     ) : (
                       <p>Loading...</p>

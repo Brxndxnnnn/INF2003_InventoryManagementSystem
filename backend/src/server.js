@@ -13,6 +13,8 @@ import orderItemRoute from './routes/orderItemRoute.js';
 import analyticsRoute from './routes/analyticsRoute.js';
 import notificationRoute from './routes/notificationRoute.js';
 import { connectMongo } from "./mongoClient.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 const app = express()
 
