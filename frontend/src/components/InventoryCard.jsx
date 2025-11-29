@@ -5,14 +5,13 @@ const InventoryCard = ({ inventory, onEdit, onDelete }) => {
   const product_name = inventory.product_name;
   const image = inventory.image;
   const description = inventory.description;
-  const current_stock = inventory.current_stock;
   const created = new Date(inventory.created_at).toLocaleString();
   const updated = new Date(inventory.updated_at).toLocaleString();
 
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     reorder_level: inventory.reorder_level,
-    max_stock_level: inventory.max_stock_level,
+    current_stock: inventory.current_stock
   });
 
   const handleChange = (e) => {
@@ -33,7 +32,7 @@ const InventoryCard = ({ inventory, onEdit, onDelete }) => {
   const handleCancel = () => {
     setFormData({
       reorder_level: inventory.reorder_level,
-      max_stock_level: inventory.max_stock_level,
+      current_stock: inventory.current_stock
     });
     setIsEditing(false);
   };
@@ -51,9 +50,21 @@ const InventoryCard = ({ inventory, onEdit, onDelete }) => {
       <p>{description}</p>
 
       <p>
-        <strong>Current Stock Quantity:</strong> {current_stock}
       </p>
-
+      <p>
+        <strong>Current Stock Quantity:</strong>{" "}
+        {isEditing ? (
+          <input
+            type="number"
+            name="current_stock"
+            value={formData.current_stock}
+            onChange={handleChange}
+            style={{ width: "80px" }}
+          />
+        ) : (
+          inventory.current_stock
+        )}
+      </p>
       <p>
         <strong>Reorder Level:</strong>{" "}
         {isEditing ? (
@@ -66,21 +77,6 @@ const InventoryCard = ({ inventory, onEdit, onDelete }) => {
           />
         ) : (
           inventory.reorder_level
-        )}
-      </p>
-
-      <p>
-        <strong>Max Stock:</strong>{" "}
-        {isEditing ? (
-          <input
-            type="number"
-            name="max_stock_level"
-            value={formData.max_stock_level}
-            onChange={handleChange}
-            style={{ width: "80px" }}
-          />
-        ) : (
-          inventory.max_stock_level
         )}
       </p>
 

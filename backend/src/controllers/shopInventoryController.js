@@ -32,7 +32,7 @@ export const getShopInventoryByShop = async (req, res) => {
 // Update shop inventory
 export const updateShopInventory = async (req, res) => {
   const { id } = req.params;
-  const { shop_id, product_id, current_stock, reorder_level, max_stock_level } = req.body;
+  const { shop_id, product_id, current_stock, reorder_level} = req.body;
   try {
     const [record] = await pool.query("SELECT * FROM shop_inventory WHERE shop_inventory_id = ?", [id]);
     if (record.length === 0) {
@@ -46,10 +46,9 @@ export const updateShopInventory = async (req, res) => {
          product_id = COALESCE(?, product_id),
          current_stock = COALESCE(?, current_stock),
          reorder_level = COALESCE(?, reorder_level),
-         max_stock_level = COALESCE(?, max_stock_level),
          updated_at = NOW()
        WHERE shop_inventory_id = ?`,
-      [shop_id, product_id, current_stock, reorder_level, max_stock_level, id]
+      [shop_id, product_id, current_stock, reorder_level, id]
     );
 
     res.status(200).json({ message: "Shop inventory record updated successfully." });
