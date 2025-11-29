@@ -13,21 +13,39 @@ export const getAllOrderItems = async (req, res) => {
     }
 };
 
-// Get all order items by supplier name with product name(nested LEFT JOIN since product name needs 2 FKs to access order_item -> supplier_product -> product)
+// Get all order items by supplier name with product name(nested left join to find product and shop info)
 export const getOrderItemsBySupplier = async (req, res) => {
-    const { id } = req.params;
-    try {
-        const [rows] = await pool.query(`
-            SELECT o.*, p.product_name FROM order_item o 
-            LEFT JOIN supplier_product sp ON o.supplier_product_id = sp.supplier_product_id 
-            LEFT JOIN product p ON sp.product_id = p.product_id
-            WHERE sp.supplier_id = ?`, [id]);
-        res.status(200).json(rows);
-    } 
-    catch (err) {
-        console.error("Error fetching order items:", err);
-        res.status(500).json({ message: err.message });
-    }
+  const { id } = req.params;
+  const { sort = "created_at", order = "desc" } = req.query;
+
+  // Sorting
+  const allowedSortFields = ["created_at", "product_name", "shop_name", "item_status"];
+  const allowedOrder = ["asc", "desc"];
+
+  const sortBy = allowedSortFields.includes(sort) ? sort : "created_at";
+  const sortOrder = allowedOrder.includes(order.toLowerCase()) ? order.toUpperCase() : "DESC";
+
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        o.*,
+        p.product_name,
+        s.shop_name,
+        s.shop_id
+      FROM order_item o
+      LEFT JOIN supplier_product sp ON o.supplier_product_id = sp.supplier_product_id
+      LEFT JOIN product p ON sp.product_id = p.product_id
+      LEFT JOIN \`order\` ord ON o.order_id = ord.order_id
+      LEFT JOIN shop s ON ord.shop_id = s.shop_id
+      WHERE sp.supplier_id = ?
+      ORDER BY ${sortBy} ${sortOrder}
+    `, [id]);
+
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error("Error fetching order items:", err);
+    res.status(500).json({ message: err.message });
+  }
 };
 
 // Get order items by order ID

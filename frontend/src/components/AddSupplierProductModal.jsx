@@ -104,6 +104,10 @@ const fetchProducts = async (pageNum = 1) => {
   // Create supplier product
   const handleCreateProduct = async (e) => {
     e.preventDefault();
+    if (formData.sku.length > 12) {
+        alert("Check constraint 'chk_sku_length' is violated");
+        return;
+    }
     try {
       const payload = {
         product_id: selectedProduct.product_id,
