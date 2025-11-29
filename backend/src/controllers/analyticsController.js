@@ -4,6 +4,7 @@ import pool from "../db.js";
 // Based on user id, we get the related shops, and its shop inventory
 // Then we group by category
 // Returns shop_name, category_name & total price in a new column called total_value
+// ADDED VIEWS inventory_value_by_category_v to simplify the query
 export const getInventoryValueByCategory = async (req, res) => {
   const { id } = req.params;
   const { shops } = req.query;
@@ -11,31 +12,27 @@ export const getInventoryValueByCategory = async (req, res) => {
   const shopIds = shops ? shops.split(",") : [];
 
   try {
-    const sql = `
-      SELECT 
-        s.shop_name,
-        c.category_name,
-        ROUND(SUM(si.current_stock * sp.unit_price), 2) AS total_value
-      FROM shop_inventory si
-      JOIN product p ON si.product_id = p.product_id
-      JOIN category c ON p.category_id = c.category_id
-      JOIN supplier_product sp ON sp.product_id = p.product_id
-      JOIN shop s ON si.shop_id = s.shop_id
-      WHERE s.user_id = ?
-        ${shopIds.length ? `AND si.shop_id IN (${shopIds.map(() => "?").join(",")})` : ""}
-      GROUP BY c.category_name
-      ORDER BY total_value DESC;
+    let sql = `
+      SELECT *
+      FROM inventory_value_by_category_v
+      WHERE user_id = ?
     `;
 
-    const params = [id, ...shopIds];
-    const [rows] = await pool.query(sql, params);
+    const params = [id];
 
+    if (shopIds.length > 0) {
+      sql += ` AND shop_id IN (${shopIds.map(() => "?").join(",")})`;
+      params.push(...shopIds);
+    }
+
+    const [rows] = await pool.query(sql, params);
     res.status(200).json(rows);
   } catch (err) {
-    console.error("Error fetching inventory value by category:", err);
-    res.status(500).json({ message: "Server error retrieving inventory value by category." });
+    console.error("Error querying inventory_value_by_category_v:", err);
+    res.status(500).json({ message: "Server error retrieving inventory values." });
   }
 };
+
 
 
 // Get monthly orders
@@ -43,38 +40,43 @@ export const getInventoryValueByCategory = async (req, res) => {
 // We get all the shop orders
 // We create a new month column based on the created_at in the order
 // Then group by shop name and month
+// ADDED VIEWS monthly_orders_v to simplify
 export const getMonthlyOrders = async (req, res) => {
   const { id } = req.params;
   const { shops } = req.query;
+
   const shopIds = shops ? shops.split(",") : [];
 
   try {
-    const sql = `
-      SELECT 
-        s.shop_name,
-        DATE_FORMAT(o.created_at, '%Y-%m') AS month,
-        COUNT(o.order_id) AS order_count
-      FROM \`order\` o
-      JOIN shop s ON o.shop_id = s.shop_id
-      WHERE s.user_id = ?
-      ${shopIds.length ? `AND o.shop_id IN (${shopIds.map(() => "?").join(",")})` : ""}
-      GROUP BY s.shop_name, month
-      ORDER BY month ASC;
+    let sql = `
+      SELECT *
+      FROM monthly_orders_v
+      WHERE user_id = ?
     `;
 
-    const params = [id, ...shopIds];
+    const params = [id];
+
+    if (shopIds.length > 0) {
+      sql += ` AND shop_id IN (${shopIds.map(() => "?").join(",")})`;
+      params.push(...shopIds);
+    }
+
+    sql += " ORDER BY month ASC";
+
     const [rows] = await pool.query(sql, params);
     res.status(200).json(rows);
   } catch (err) {
-    console.error("Error fetching monthly order trend:", err);
-    res.status(500).json({ message: "Server error retrieving monthly order trend." });
+    console.error("Error querying monthly_orders_v:", err);
+    res.status(500).json({ message: "Server error retrieving monthly orders." });
   }
 };
+
 
 // Get low stock products
 // based on user id, retrieve all related shops and their inventory
 // Then find products whose current_stock is below their minimum order quantity
 // Return shop_name, product_name, current_stock, min_order_quantity, and a new column called stock status
+// ADDED VIEWS low_stock_v to simplify the query
 export const getLowStockProducts = async (req, res) => {
   const { id } = req.params;
   const { shops } = req.query;
@@ -82,32 +84,23 @@ export const getLowStockProducts = async (req, res) => {
   const shopIds = shops ? shops.split(",") : [];
 
   try {
-    const sql = `
-      SELECT 
-        s.shop_name,
-        p.product_name,
-        si.current_stock,
-        si.reorder_level,
-        si.max_stock_level,
-        CASE 
-          WHEN si.current_stock <= si.reorder_level THEN 'LOW'
-          ELSE 'OK'
-        END AS stock_status
-      FROM shop_inventory si
-      JOIN product p ON si.product_id = p.product_id
-      JOIN shop s ON si.shop_id = s.shop_id
-      WHERE s.user_id = ?
-        ${shopIds.length ? `AND si.shop_id IN (${shopIds.map(() => "?").join(",")})` : ""}
-        AND si.current_stock <= si.reorder_level
-      ORDER BY s.shop_name, p.product_name;
+    let sql = `
+      SELECT *
+      FROM low_stock_v
+      WHERE user_id = ?
     `;
 
-    const params = [id, ...shopIds];
-    const [rows] = await pool.query(sql, params);
+    const params = [id];
 
+    if (shopIds.length > 0) {
+      sql += ` AND shop_id IN (${shopIds.map(() => "?").join(",")})`;
+      params.push(...shopIds);
+    }
+
+    const [rows] = await pool.query(sql, params);
     res.status(200).json(rows);
   } catch (err) {
-    console.error("Error fetching low-stock products:", err);
-    res.status(500).json({ message: "Server error retrieving low-stock products." });
+    console.error("Error querying low_stock_v:", err);
+    res.status(500).json({ message: "Server error retrieving low stock products." });
   }
 };

@@ -65,7 +65,7 @@ const Navbar = () => {
 
             <div className="navbar-middle">
                 <a href="/home" className="link-text" style={{ margin: "0 1rem" }}>Home</a>
-                <a href={`/${user.user_id}/analytics`} className="link-text" style={{ margin: "0 1rem" }}>Analytics</a>
+                {user.user_type === "shop" && (<a href={`/${user.user_id}/analytics`} className="link-text" style={{ margin: "0 1rem" }}>Analytics</a>)}
             </div>
 
             <div className="navbar-right" style={{ display: "flex", alignItems: "center" }}>
