@@ -48,6 +48,14 @@ This user manual explains how to run the USOIMP under two different environments
 - **Access:** IP whitelist includes 0.0.0.0/0.
 - **Notes:** Public access is enabled for grading.
 
+## Test Data (User Login)
+### 1. Shop Users
+- email: user1@example.com --> user100@example.com
+- password: test
+
+### 2. Supplier Users
+- email: user101@example.com --> user200@example.com
+- password: test
 
 
 
